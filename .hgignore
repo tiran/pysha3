@@ -1,0 +1,11 @@
+^build/
+^core
+
+syntax: glob
+_sha3*.so*
+*.swp
+*.o
+*.pyc
+*.pyo
+*.pyd
+*~
