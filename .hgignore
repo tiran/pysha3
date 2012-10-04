@@ -1,5 +1,7 @@
 ^build/
+^dist/
 ^core
+^MANIFEST
 
 syntax: glob
 _sha3*.so*
