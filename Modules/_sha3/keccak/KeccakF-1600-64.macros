@@ -457,7 +457,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #endif /*  UseBebigokimisa */
 
-const UINT64 KeccakF1600RoundConstants[24] = {
+static const UINT64 KeccakF1600RoundConstants[24] = {
     0x0000000000000001ULL,
     0x0000000000008082ULL,
     0x800000000000808aULL,
