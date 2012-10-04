@@ -28,7 +28,7 @@
    #include "keccak/KeccakF-1600-opt64.c"
 #endif
 
-/* #define SHA3_BLOCKSIZE 200 // 1600 bits  */
+#define SHA3_BLOCKSIZE 200 /* 1600 bits  */
 #define SHA3_MAX_DIGESTSIZE 64 /* 512 bits */
 #define SHA3_state hashState
 #define SHA3_init Init
@@ -260,11 +260,15 @@ static PyMethodDef SHA3_methods[] = {
     {NULL,        NULL}         /* sentinel */
 };
 
-/* static PyObject *
+static PyObject *
 SHA3_get_block_size(SHA3object *self, void *closure)
 {
+#if PY_MAJOR_VERSION >= 3
     return PyLong_FromLong(SHA3_BLOCKSIZE);
-}*/
+#else
+    return PyInt_FromLong(SHA3_BLOCKSIZE);
+#endif
+}
 
 static PyObject *
 SHA3_get_name(SHA3object *self, void *closure)
@@ -288,7 +292,7 @@ SHA3_get_digest_size(SHA3object *self, void *closure)
 
 
 static PyGetSetDef SHA3_getseters[] = {
-    /*{"block_size", (getter)SHA3_get_block_size, NULL, NULL, NULL},*/
+    {"block_size", (getter)SHA3_get_block_size, NULL, NULL, NULL},
     {"name", (getter)SHA3_get_name, NULL, NULL, NULL},
     {"digest_size", (getter)SHA3_get_digest_size, NULL, NULL, NULL},
     {NULL}  /* Sentinel */
