@@ -27,7 +27,8 @@
 #define SHA3_init Init
 #define SHA3_process Update
 #define SHA3_done Final
-#define SHA3_copystate(dest, src) memcpy(&dest, &src, sizeof(SHA3_state));
+#define SHA3_copystate(dest, src) memcpy(&dest, &src, sizeof(SHA3_state))
+#define SHA3_clearstate(state) memset(&state, 0, sizeof(SHA3_state))
 
 #if PY_VERSION_HEX > 0x03030000
 #  define PY_VERSION_33 1
@@ -84,6 +85,13 @@ SHA3_dealloc(PyObject *ptr)
     PyObject_Del(ptr);
 }
 
+static int
+SHA3_clear(SHA3object *self)
+{
+    SHA3_clearstate(self->hash_state);
+    return 0;
+}
+
 
 /* External methods for a hash object */
 
@@ -110,11 +118,13 @@ SHA3_digest(SHA3object *self, PyObject *unused)
 {
     unsigned char digest[SHA3_MAX_DIGESTSIZE];
     SHA3_state temp;
+    HashReturn res;
 
     SHA3_copystate(temp, self->hash_state);
-    if (SHA3_done((hashState*)&temp, digest) != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "internal error in SHA3 Final()");
+    res = SHA3_done((hashState*)&temp, digest);
+    SHA3_clearstate(temp);
+    if (res != SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
     return PyBytes_FromStringAndSize((const char *)digest,
@@ -130,6 +140,7 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
 {
     unsigned char digest[SHA3_MAX_DIGESTSIZE];
     SHA3_state temp;
+    HashReturn res;
     PyObject *retval;
 #if PY_VERSION_33
     Py_UCS1 *hex_digest;
@@ -142,7 +153,9 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
 
     /* Get the raw (binary) digest value */
     SHA3_copystate(temp, self->hash_state);
-    if (SHA3_done((hashState*)&temp, digest) != SUCCESS) {
+    res = SHA3_done((hashState*)&temp, digest);
+    SHA3_clearstate(temp);
+    if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
@@ -207,6 +220,7 @@ SHA3_update(SHA3object *self, PyObject *args)
 {
     PyObject *obj;
     Py_buffer buf;
+    HashResult res;
 
     if (!PyArg_ParseTuple(args, "O:update", &obj))
         return NULL;
@@ -214,7 +228,8 @@ SHA3_update(SHA3object *self, PyObject *args)
     GET_BUFFER_VIEW_OR_ERROUT(obj, &buf);
 
     /* add new data, the function takes the length in bits not bytes */
-    if (SHA3_process((hashState*)&self->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
+    res = SHA3_process((hashState*)&self->hash_state, buf.buf, buf.len * 8);
+    if (res != SUCCESS) {
         PyBuffer_Release(&buf);
         PyErr_SetString(PyExc_RuntimeError,
                         "internal error in SHA3 Update()");
@@ -292,7 +307,7 @@ static PyTypeObject SHA3type = {
     Py_TPFLAGS_DEFAULT, /* tp_flags */
     0,                  /* tp_doc */
     0,                  /* tp_traverse */
-    0,                  /* tp_clear */
+    (inquiry)SHA3_clear, /* tp_clear */
     0,                  /* tp_richcompare */
     0,                  /* tp_weaklistoffset */
     0,                  /* tp_iter */
@@ -307,7 +322,7 @@ static PyTypeObject SHA3type = {
 static PyObject *
 SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt, int hashbitlen)
 {
-    SHA3object *new;
+    SHA3object *newobj = NULL;
     static char *kwlist[] = {"string", NULL};
     PyObject *data_obj = NULL;
     Py_buffer buf;
@@ -320,18 +335,18 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt, int hashbitlen)
     if (data_obj)
         GET_BUFFER_VIEW_OR_ERROUT(data_obj, &buf);
 
-    if ((new = newSHA3object(hashbitlen)) == NULL) {
+    if ((newobj = newSHA3object(hashbitlen)) == NULL) {
         goto error;
     }
 
-    if (SHA3_init((hashState*)&new->hash_state, hashbitlen) != SUCCESS) {
+    if (SHA3_init((hashState*)&newobj->hash_state, hashbitlen) != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError,
                         "internal error in SHA3 Update()");
         goto error;
     }
 
     if (data_obj) {
-        if (SHA3_process(&new->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
+        if (SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
             PyErr_SetString(PyExc_RuntimeError,
                             "internal error in SHA3 Update()");
             goto error;
@@ -339,9 +354,12 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt, int hashbitlen)
         PyBuffer_Release(&buf);
     }
 
-    return (PyObject *)new;
+    return (PyObject *)newobj;
 
   error:
+    if (newobj) {
+        SHA3_clearstate(newobj->hash_state);
+    }
     if (data_obj) {
         PyBuffer_Release(&buf);
     }
