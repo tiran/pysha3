@@ -13,7 +13,7 @@ Usage
 =====
 
   >>> import sha3
-  >>> s = sha3.sha3()
+  >>> s = sha3.sha3_512()
   >>> s.name
   'sha3_512'
   >>> s.digest_size
@@ -23,4 +23,4 @@ Usage
   '1065aceeded3a5e4412e2187e919bffeadf815f5bd73d37fe00d384fe29f55f08462fdabe1007b993ce5b8119630e7db93101d9425d6e352e22ffe3dcb56b825'
 
 The module contains the constructors sha3_228(), sha3_256(), sha3_384 and
-sha3_512(). sha3() is an alias for sha3_512().
+sha3_512().
