@@ -3,6 +3,10 @@
 ^core
 ^MANIFEST
 
+^.project
+^.pydevproject
+^.settings
+
 syntax: glob
 _sha3*.so*
 *.swp
