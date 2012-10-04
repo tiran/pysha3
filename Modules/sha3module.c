@@ -220,7 +220,7 @@ SHA3_update(SHA3object *self, PyObject *args)
 {
     PyObject *obj;
     Py_buffer buf;
-    HashResult res;
+    HashReturn res;
 
     if (!PyArg_ParseTuple(args, "O:update", &obj))
         return NULL;
