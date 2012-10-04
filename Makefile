@@ -1,8 +1,10 @@
 PYTHON=python
 SETUPFLAGS=
 COMPILEFLAGS=
+INSTALLFLAGS=
 
-.PHONY: inplace all rebuild test_inplace test fulltests clean distclean sdist
+.PHONY: inplace all rebuild test_inplace test fulltests clean distclean
+.PHONY: sdist install
 
 inplace:
 	$(PYTHON) setup.py $(SETUPFLAGS) build_ext -i $(COMPILEFLAGS)
@@ -31,3 +33,7 @@ distclean: clean
 
 sdist: egg_info
 	$(PYTHON) setup.py sdist --formats gztar,zip
+
+install:
+	$(PYTHON) setup.py $(SETUPFLAGS) build $(COMPILEFLAGS)
+	$(PYTHON) setup.py install $(INSTALLFLAGS)
