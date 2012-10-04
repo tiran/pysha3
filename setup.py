@@ -1,19 +1,13 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from glob import glob
-
-try:
-    import sysconfig
-except ImportError:
-    import struct
-    pointer_size = struct.calcsize("P") * 8
-else:
-    pointer_size = sysconfig.get_config_var('SIZEOF_VOID_P') * 8
+from struct import calcsize
 
 sha3_files = ["Modules/sha3module.c",
               "Modules/keccak/KeccakNISTInterface.c",
               "Modules/keccak/KeccakSponge.c"]
 
+pointer_size = calcsize("P") * 8
 if pointer_size == 32:
     sha3_files.append("Modules/keccak/KeccakF-1600-opt32.c")
 elif pointer_size == 64:
