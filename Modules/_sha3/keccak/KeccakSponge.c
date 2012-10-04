@@ -39,7 +39,7 @@ int InitSponge(spongeState *state, unsigned int rate, unsigned int capacity)
 
 void AbsorbQueue(spongeState *state)
 {
-    // state->bitsInQueue is assumed to be equal to state->rate
+    /*  state->bitsInQueue is assumed to be equal to state->rate */
     #ifdef KeccakReference
     displayBytes(1, "Block to be absorbed", state->dataQueue, state->rate/8);
     #endif
@@ -84,9 +84,9 @@ int Absorb(spongeState *state, const unsigned char *data, unsigned long long dat
     const unsigned char *curData;
 
     if ((state->bitsInQueue % 8) != 0)
-        return 1; // Only the last call may contain a partial byte
+        return 1; /*  Only the last call may contain a partial byte */
     if (state->squeezing)
-        return 1; // Too late for additional input
+        return 1; /*  Too late for additional input */
 
     i = 0;
     while(i < databitlen) {
@@ -193,7 +193,7 @@ int Absorb(spongeState *state, const unsigned char *data, unsigned long long dat
 
 void PadAndSwitchToSqueezingPhase(spongeState *state)
 {
-    // Note: the bits are numbered from 0=LSB to 7=MSB
+    /*  Note: the bits are numbered from 0=LSB to 7=MSB */
     if (state->bitsInQueue + 1 == state->rate) {
         state->dataQueue[state->bitsInQueue/8 ] |= 1 << (state->bitsInQueue % 8);
         AbsorbQueue(state);
@@ -234,7 +234,7 @@ int Squeeze(spongeState *state, unsigned char *output, unsigned long long output
     if (!state->squeezing)
         PadAndSwitchToSqueezingPhase(state);
     if ((outputLength % 8) != 0)
-        return 1; // Only multiple of 8 bits are allowed, truncation can be done at user level
+        return 1; /*  Only multiple of 8 bits are allowed, truncation can be done at user level */
 
     i = 0;
     while(i < outputLength) {

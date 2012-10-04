@@ -62,8 +62,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     Cu1 = Abu1^Agu1^Aku1^Amu1^Asu1; \
 
 #ifdef UseBebigokimisa
-// --- Code for round, with prepare-theta (lane complementing pattern 'bebigokimisa')
-// --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words
+/*  --- Code for round, with prepare-theta (lane complementing pattern 'bebigokimisa') */
+/*  --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words */
 #define thetaRhoPiChiIotaPrepareTheta(i, A, E) \
     Da0 = Cu0^ROL32(Ce1, 1); \
     Da1 = Cu1^Ce0; \
@@ -289,8 +289,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     Cu1 ^= E##su1; \
 \
 
-// --- Code for round (lane complementing pattern 'bebigokimisa')
-// --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words
+/*  --- Code for round (lane complementing pattern 'bebigokimisa') */
+/*  --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words */
 #define thetaRhoPiChiIota(i, A, E) \
     Da0 = Cu0^ROL32(Ce1, 1); \
     Da1 = Cu1^Ce0; \
@@ -466,9 +466,9 @@ http://creativecommons.org/publicdomain/zero/1.0/
     E##su1 =   Bsu1 ^(  Bsa1 &  Bse1 ); \
 \
 
-#else // UseBebigokimisa
-// --- Code for round, with prepare-theta
-// --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words
+#else /*  UseBebigokimisa */
+/*  --- Code for round, with prepare-theta */
+/*  --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words */
 #define thetaRhoPiChiIotaPrepareTheta(i, A, E) \
     Da0 = Cu0^ROL32(Ce1, 1); \
     Da1 = Cu1^Ce0; \
@@ -694,8 +694,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     Cu1 ^= E##su1; \
 \
 
-// --- Code for round
-// --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words
+/*  --- Code for round */
+/*  --- using factor 2 interleaving, 64-bit lanes mapped to 32-bit words */
 #define thetaRhoPiChiIota(i, A, E) \
     Da0 = Cu0^ROL32(Ce1, 1); \
     Da1 = Cu1^Ce0; \
@@ -871,7 +871,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     E##su1 =   Bsu1 ^((~Bsa1)&  Bse1 ); \
 \
 
-#endif // UseBebigokimisa
+#endif /*  UseBebigokimisa */
 
 const UINT32 KeccakF1600RoundConstants_int2_0[24] = {
     0x00000001UL,

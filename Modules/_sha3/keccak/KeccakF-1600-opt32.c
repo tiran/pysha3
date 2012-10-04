@@ -56,7 +56,7 @@ void buildInterleaveTables()
     d##j = deinterleaveTable[((even >> (j*8)) & 0xFF) ^ (((odd >> (j*8)) & 0xFF) << 8)]; \
     ((UINT16*)dest)[j] = d##j;
 
-#else // (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
+#else /*  (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN) */
 
 #define xor2bytesIntoInterleavedWords(even, odd, source, j) \
     i##j = interleaveTable[source[2*j] ^ ((UINT16)source[2*j+1] << 8)]; \
@@ -68,7 +68,7 @@ void buildInterleaveTables()
     dest[2*j] = d##j & 0xFF; \
     dest[2*j+1] = d##j >> 8;
 
-#endif // Endianness
+#endif /*  Endianness */
 
 void xor8bytesIntoInterleavedWords(UINT32 *even, UINT32 *odd, const UINT8* source)
 {
@@ -104,11 +104,11 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32 even, UINT32 odd)
             setInterleavedWordsInto8bytes(data+i*8, ((UINT32*)state)[i*2], ((UINT32*)state)[i*2+1]); \
     }
 
-#else // No interleaving tables
+#else /*  No interleaving tables */
 
 #if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
 
-// Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002
+/*  Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002 */
 #define xorInterleavedLE(rateInLanes, state, input) \
 	{ \
 		const UINT32 * pI = (const UINT32 *)input; \
@@ -135,9 +135,9 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32 even, UINT32 odd)
 #define xorLanesIntoState(laneCount, state, input) \
     xorInterleavedLE(laneCount, state, input)
 
-#else // (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
+#else /*  (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN) */
 
-// Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002
+/*  Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002 */
 UINT64 toInterleaving(UINT64 x) 
 {
    UINT64 t;
@@ -153,7 +153,7 @@ UINT64 toInterleaving(UINT64 x)
 
 void xor8bytesIntoInterleavedWords(UINT32* evenAndOdd, const UINT8* source)
 {
-    // This can be optimized
+    /*  This can be optimized */
     UINT64 sourceWord =
         (UINT64)source[0]
         ^ (((UINT64)source[1]) <<  8)
@@ -175,9 +175,9 @@ void xor8bytesIntoInterleavedWords(UINT32* evenAndOdd, const UINT8* source)
             xor8bytesIntoInterleavedWords(state+i*2, input+i*8); \
     }
 
-#endif // Endianness
+#endif /*  Endianness */
 
-// Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002
+/*  Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002 */
 UINT64 fromInterleaving(UINT64 x)
 {
    UINT64 t;
@@ -195,8 +195,8 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32* evenAndOdd)
 {
 #if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
     ((UINT64*)dest)[0] = fromInterleaving(*(UINT64*)evenAndOdd);
-#else // (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
-    // This can be optimized
+#else /*  (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN) */
+    /*  This can be optimized */
     UINT64 evenAndOddWord = (UINT64)evenAndOdd[0] ^ ((UINT64)evenAndOdd[1] << 32);
     UINT64 destWord = fromInterleaving(evenAndOddWord);
     dest[0] = destWord & 0xFF;
@@ -207,7 +207,7 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32* evenAndOdd)
     dest[5] = (destWord >> 40) & 0xFF;
     dest[6] = (destWord >> 48) & 0xFF;
     dest[7] = (destWord >> 56) & 0xFF;
-#endif // Endianness
+#endif /*  Endianness */
 }
 
 #define extractLanes(laneCount, state, data) \
@@ -217,7 +217,7 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32* evenAndOdd)
             setInterleavedWordsInto8bytes(data+i*8, (UINT32*)state+i*2); \
     }
 
-#endif // With or without interleaving tables
+#endif /*  With or without interleaving tables */
 
 #if defined(_MSC_VER)
 #define ROL32(a, offset) _rotl(a, offset)
@@ -299,7 +299,7 @@ void KeccakPermutationOnWordsAfterXoring1344bits(UINT32 *state, const UINT8 *inp
 }
 #endif
 
-#else // (Schedule != 3)
+#else /*  (Schedule != 3) */
 
 void KeccakPermutationOnWords(UINT32 *state)
 {
@@ -424,7 +424,7 @@ void KeccakInitializeState(unsigned char *state)
 
 void KeccakPermutation(unsigned char *state)
 {
-    // We assume the state is always stored as interleaved 32-bit words
+    /*  We assume the state is always stored as interleaved 32-bit words */
     KeccakPermutationOnWords((UINT32*)state);
 }
 

@@ -51,8 +51,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     Do = Dou; \
     Du = COPY64HI2LO(Dou);
 
-// --- Theta Rho Pi Chi Iota Prepare-theta
-// --- 64-bit lanes mapped to 64-bit and 128-bit words
+/*  --- Theta Rho Pi Chi Iota Prepare-theta */
+/*  --- 64-bit lanes mapped to 64-bit and 128-bit words */
 #define thetaRhoPiChiIotaPrepareTheta(i, A, E) \
     computeD \
     \
@@ -177,8 +177,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     XOReq128(Cua, GET64HIHI(Cou, Zero)); \
     XOReq64(Cu, Cua); \
 
-// --- Theta Rho Pi Chi Iota
-// --- 64-bit lanes mapped to 64-bit and 128-bit words
+/*  --- Theta Rho Pi Chi Iota */
+/*  --- 64-bit lanes mapped to 64-bit and 128-bit words */
 #define thetaRhoPiChiIota(i, A, E) thetaRhoPiChiIotaPrepareTheta(i, A, E)
 
 const UINT64 KeccakF1600RoundConstants[24] = {

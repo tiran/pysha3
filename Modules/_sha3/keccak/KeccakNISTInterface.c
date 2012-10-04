@@ -18,7 +18,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 HashReturn Init(hashState *state, int hashbitlen)
 {
     switch(hashbitlen) {
-        case 0: // Default parameters, arbitrary length output
+        case 0: /*  Default parameters, arbitrary length output */
             InitSponge((spongeState*)state, 1024, 576);
             break;
         case 224:
@@ -48,7 +48,7 @@ HashReturn Update(hashState *state, const BitSequence *data, DataLength databitl
         HashReturn ret = Absorb((spongeState*)state, data, databitlen - (databitlen % 8));
         if (ret == SUCCESS) {
             unsigned char lastByte; 
-            // Align the last partial byte to the least significant bits
+            /*  Align the last partial byte to the least significant bits */
             lastByte = data[databitlen/8] >> (8 - (databitlen % 8));
             return Absorb((spongeState*)state, &lastByte, databitlen % 8);
         }
@@ -68,7 +68,7 @@ HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen, 
     HashReturn result;
 
     if ((hashbitlen != 224) && (hashbitlen != 256) && (hashbitlen != 384) && (hashbitlen != 512))
-        return BAD_HASHLEN; // Only the four fixed output lengths available through this API
+        return BAD_HASHLEN; /*  Only the four fixed output lengths available through this API */
     result = Init(&state, hashbitlen);
     if (result != SUCCESS)
         return result;
