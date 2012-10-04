@@ -12,7 +12,7 @@ exts.append(Extension("_sha3", ["Modules/_sha3/sha3module.c"],
 
 setup(
     name="pysha3",
-    version="0.1",
+    version="0.2dev",
     ext_modules=exts,
     py_modules=["sha3"],
     author="Christian Heimes",
