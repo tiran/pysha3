@@ -29,6 +29,7 @@ setup(
     ext_modules=[
         Extension("_sha3", sha3_files, depends=sha3_depends)
         ],
+    py_modules=["sha3"],
     author="Christian Heimes",
     author_email="christian@python.org",
     maintainer="Christian Heimes",
