@@ -11,6 +11,8 @@ pysha3 0.2
 
 - Remove alias sha3() for sha3_512().
 
+- Add block_size attribute. Keccak has a internal sponge size of 1600 bits.
+
 
 pysha3 0.1
 ----------
