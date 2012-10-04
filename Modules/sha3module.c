@@ -242,10 +242,14 @@ SHA3_update(SHA3object *self, PyObject *args)
 }
 
 static PyMethodDef SHA3_methods[] = {
-    {"copy",      (PyCFunction)SHA3_copy,      METH_NOARGS,  SHA3_copy__doc__},
-    {"digest",    (PyCFunction)SHA3_digest,    METH_NOARGS,  SHA3_digest__doc__},
-    {"hexdigest", (PyCFunction)SHA3_hexdigest, METH_NOARGS,  SHA3_hexdigest__doc__},
-    {"update",    (PyCFunction)SHA3_update,    METH_VARARGS, SHA3_update__doc__},
+    {"copy",      (PyCFunction)SHA3_copy,      METH_NOARGS,
+         SHA3_copy__doc__},
+    {"digest",    (PyCFunction)SHA3_digest,    METH_NOARGS,
+         SHA3_digest__doc__},
+    {"hexdigest", (PyCFunction)SHA3_hexdigest, METH_NOARGS,
+         SHA3_hexdigest__doc__},
+    {"update",    (PyCFunction)SHA3_update,    METH_VARARGS,
+         SHA3_update__doc__},
     {NULL,        NULL}         /* sentinel */
 };
 
@@ -320,7 +324,8 @@ static PyTypeObject SHA3type = {
 
 /* constructor helper */
 static PyObject *
-SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt, int hashbitlen)
+SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
+             int hashbitlen)
 {
     SHA3object *newobj = NULL;
     static char *kwlist[] = {"string", NULL};
@@ -415,10 +420,14 @@ sha3_512(PyObject *self, PyObject *args, PyObject *kwdict)
 
 /* List of functions exported by this module */
 static struct PyMethodDef SHA3_functions[] = {
-    {"sha3_224", (PyCFunction)sha3_224, METH_VARARGS|METH_KEYWORDS, sha3_224__doc__},
-    {"sha3_256", (PyCFunction)sha3_256, METH_VARARGS|METH_KEYWORDS, sha3_256__doc__},
-    {"sha3_384", (PyCFunction)sha3_384, METH_VARARGS|METH_KEYWORDS, sha3_384__doc__},
-    {"sha3_512", (PyCFunction)sha3_512, METH_VARARGS|METH_KEYWORDS, sha3_512__doc__},
+    {"sha3_224", (PyCFunction)sha3_224, METH_VARARGS|METH_KEYWORDS,
+         sha3_224__doc__},
+    {"sha3_256", (PyCFunction)sha3_256, METH_VARARGS|METH_KEYWORDS,
+         sha3_256__doc__},
+    {"sha3_384", (PyCFunction)sha3_384, METH_VARARGS|METH_KEYWORDS,
+         sha3_384__doc__},
+    {"sha3_512", (PyCFunction)sha3_512, METH_VARARGS|METH_KEYWORDS,
+         sha3_512__doc__},
     {NULL,      NULL}            /* Sentinel */
 };
 
