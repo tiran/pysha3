@@ -21,8 +21,8 @@
 #include "keccak/KeccakNISTInterface.h"
 
 
-/* #define SHA3_BLOCKSIZE 1600 / 8 */
-#define SHA3_MAX_DIGESTSIZE 64 /* 512 / 8 */
+/* #define SHA3_BLOCKSIZE 200 // 1600 bits  */
+#define SHA3_MAX_DIGESTSIZE 64 /* 512 bits */
 #define SHA3_state hashState
 #define SHA3_init Init
 #define SHA3_process Update
