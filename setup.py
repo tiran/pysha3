@@ -13,6 +13,7 @@ else:
 sha3_files = ["Modules/sha3module.c",
               "Modules/keccak/KeccakNISTInterface.c",
               "Modules/keccak/KeccakSponge.c"]
+
 if pointer_size == 32:
     sha3_files.append("Modules/keccak/KeccakF-1600-opt32.c")
 elif pointer_size == 64:
@@ -25,10 +26,8 @@ sha3_depends = glob("Modules/keccak/*.h") + glob("Modules/keccak/*.macros")
 
 setup(
     name="pysha3",
-    version="0.0.1",
-    ext_modules=[
-        Extension("_sha3", sha3_files, depends=sha3_depends)
-        ],
+    version="0.1",
+    ext_modules=[Extension("_sha3", sha3_files, depends=sha3_depends)],
     py_modules=["sha3"],
     author="Christian Heimes",
     author_email="christian@python.org",
@@ -36,11 +35,11 @@ setup(
     maintainer_email="christian@python.org",
     url="https://bitbucket.org/tiran/pykeccak",
     keywords="sha3 sha-3 keccak hash",
-    license="PSF",
+    license="PSFL (Keccak: CC0 1.0 Universal)",
     description="SHA-3 for Python 2.6 - 3.4",
     long_description=open("README.txt").read(),
     classifiers=(
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Python Software Foundation License',
         'Natural Language :: English',
