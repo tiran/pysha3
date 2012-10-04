@@ -115,7 +115,7 @@ ALIGN const UINT64 rot_62_55[2] = {62, 55};
 ALIGN const UINT64 rot_39_41[2] = {39, 41};
 
 #if defined(UseSimulatedXOP)
-    // For debugging purposes, when XOP is not available
+    /*  For debugging purposes, when XOP is not available */
     #undef ROL6464
     #undef ROL6464same
     #define ROL6464same(a, o)   _mm_or_si128(_mm_slli_epi64(a, o), _mm_srli_epi64(a, 64-(o)))
@@ -320,7 +320,7 @@ void KeccakInitializeState(unsigned char *state)
 
 void KeccakPermutation(unsigned char *state)
 {
-    // We assume the state is always stored as words
+    /*  We assume the state is always stored as words */
     KeccakPermutationOnWords((UINT64*)state);
 }
 

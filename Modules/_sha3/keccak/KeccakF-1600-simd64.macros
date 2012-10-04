@@ -39,8 +39,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     Co = XOR64(Abo, XOR64(Ago, XOR64(Ako, XOR64(Amo, Aso)))); \
     Cu = XOR64(Abu, XOR64(Agu, XOR64(Aku, XOR64(Amu, Asu)))); \
 
-// --- Code for round, with prepare-theta
-// --- 64-bit lanes mapped to 64-bit words
+/*  --- Code for round, with prepare-theta */
+/*  --- 64-bit lanes mapped to 64-bit words */
 #define thetaRhoPiChiIotaPrepareTheta(i, A, E) \
     Da = XOR64(Cu, ROL64(Ce, 1)); \
     De = XOR64(Ca, ROL64(Ci, 1)); \
@@ -155,8 +155,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     XOReq64(Cu, E##su); \
 \
 
-// --- Code for round
-// --- 64-bit lanes mapped to 64-bit words
+/*  --- Code for round */
+/*  --- 64-bit lanes mapped to 64-bit words */
 #define thetaRhoPiChiIota(i, A, E) \
     Da = XOR64(Cu, ROL64(Ce, 1)); \
     De = XOR64(Ca, ROL64(Ci, 1)); \
