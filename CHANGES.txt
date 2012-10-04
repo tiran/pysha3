@@ -1,0 +1,21 @@
+pysha3 0.2
+==========
+
+*Release date: ??-Oct-2012*
+
+- Change directory struct to use the same directory layout as Python 3.4.
+
+- Remove C++ comments from Keccak sources for ANSI C compatibility.
+
+- Declare all Keccak functions and globals as static to avoid name clashes.
+
+
+pysha3 0.1
+==========
+
+*Release date: 04-Oct-2012*
+
+- first release
+
+- based on KeccakReferenceAndOptimized-3.2.zip
+
