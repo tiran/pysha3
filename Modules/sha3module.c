@@ -56,14 +56,14 @@ newSHA3object(int hashbitlen)
             break;
         case 512:
             break;
-        /* case 0: (arbitrarily-long output) isn't supported by this module */
-        /* everything else is an error */
+        case 0:
+            /*  arbitrarily-long output isn't supported by this module */
         default:
+            /* everything else is an error */
             PyErr_SetString(PyExc_ValueError,
                     "hashbitlen must be one of 224, 256, 384 or 512.");
             return NULL;
     }
-
     newobj = (SHA3object *)PyObject_New(SHA3object, &SHA3type);
     newobj->hashbitlen = hashbitlen;
     return newobj;
@@ -95,6 +95,7 @@ SHA3_copy(SHA3object *self, PyObject *unused)
     return (PyObject *)newobj;
 }
 
+
 PyDoc_STRVAR(SHA3_digest__doc__,
 "Return the digest value as a string of binary data.");
 
@@ -114,6 +115,7 @@ SHA3_digest(SHA3object *self, PyObject *unused)
                                       self->hashbitlen / 8);
 }
 
+
 PyDoc_STRVAR(SHA3_hexdigest__doc__,
 "Return the digest value as a string of hexadecimal digits.");
 
@@ -123,7 +125,13 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
     unsigned char digest[SHA3_MAX_DIGESTSIZE];
     SHA3_state temp;
     PyObject *retval;
+#if PY_VERSION_HEX >= 0x03030000
     Py_UCS1 *hex_digest;
+#elif PY_MAJOR_VERSION >= 3
+    Py_UNICODE *hex_digest;
+#else
+    char *hex_digest;
+#endif
     int digestlen, i, j;
 
     /* Get the raw (binary) digest value */
@@ -135,18 +143,49 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
 
     /* Create a new string */
     digestlen = self->hashbitlen / 8;
+#if PY_VERSION_HEX >= 0x03030000
     retval = PyUnicode_New(digestlen * 2, 127);
     if (!retval)
             return NULL;
     hex_digest = PyUnicode_1BYTE_DATA(retval);
+#elif PY_MAJOR_VERSION >= 3
+    retval = PyUnicode_FromStringAndSize(NULL, digestlen * 2);
+    if (!retval)
+            return NULL;
+    hex_digest = PyUnicode_AS_UNICODE(retval);
+    if (!hex_digest) {
+            Py_DECREF(retval);
+            return NULL;
+    }
+#else
+    retval = PyString_FromStringAndSize(NULL, digestlen * 2);
+    if (!retval)
+            return NULL;
+    hex_digest = PyString_AsString(retval);
+    if (!hex_digest) {
+            Py_DECREF(retval);
+            return NULL;
+    }
+#endif
+
 
     /* Make hex version of the digest */
     for(i=j=0; i < digestlen; i++) {
+#if PY_VERSION_HEX > 0x03030000
         unsigned char c;
         c = (digest[i] >> 4) & 0xf;
         hex_digest[j++] = Py_hexdigits[c];
         c = (digest[i] & 0xf);
         hex_digest[j++] = Py_hexdigits[c];
+#else
+        char c;
+        c = (digest[i] >> 4) & 0xf;
+        c = (c>9) ? c+'a'-10 : c + '0';
+        hex_digest[j++] = c;
+        c = (digest[i] & 0xf);
+        c = (c>9) ? c+'a'-10 : c + '0';
+        hex_digest[j++] = c;
+#endif
     }
     assert(_PyUnicode_CheckConsistency(retval, 1));
     return retval;
@@ -196,31 +235,21 @@ SHA3_get_block_size(SHA3object *self, void *closure)
 static PyObject *
 SHA3_get_name(SHA3object *self, void *closure)
 {
-    char *name;
-    switch (self->hashbitlen) {
-        case 224:
-            name = "SHA3-224";
-            break;
-        case 256:
-            name = "SHA3-256";
-            break;
-        case 384:
-            name = "SHA3-384";
-            break;
-        case 512:
-            name = "SHA3-512";
-            break;
-        default:
-            /* can never be reached */
-            PyErr_SetString(PyExc_ValueError, "invalid hashbitlen");
-    };
-    return PyUnicode_FromStringAndSize(name, 7);
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_FromFormat("sha3_%i", self->hashbitlen);
+#else
+    return PyString_FromFormat("sha3_%i", self->hashbitlen);
+#endif
 }
 
 static PyObject *
 SHA3_get_digest_size(SHA3object *self, void *closure)
 {
+#if PY_MAJOR_VERSION >= 3
     return PyLong_FromLong(self->hashbitlen / 8);
+#else
+    return PyInt_FromLong(self->hashbitlen / 8);
+#endif
 }
 
 
@@ -409,6 +438,8 @@ static struct PyMethodDef SHA3_functions[] = {
     {NULL,      NULL}            /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+
 /* Initialize this module. */
 static struct PyModuleDef _SHA3module = {
         PyModuleDef_HEAD_INIT,
@@ -422,11 +453,27 @@ static struct PyModuleDef _SHA3module = {
         NULL
 };
 
+#define INITERROR return NULL
+
 PyMODINIT_FUNC
 PyInit__sha3(void)
+#else
+
+#define INITERROR return
+
+void
+init_sha3(void)
+#endif
+
 {
     Py_TYPE(&SHA3type) = &PyType_Type;
-    if (PyType_Ready(&SHA3type) < 0)
-        return NULL;
+    if (PyType_Ready(&SHA3type) < 0) {
+        INITERROR;
+    }
+
+#if PY_MAJOR_VERSION >= 3
     return PyModule_Create(&_SHA3module);
+#else
+    Py_InitModule3("_sha3", SHA3_functions, NULL);
+#endif
 }
