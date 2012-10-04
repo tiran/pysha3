@@ -31,7 +31,7 @@ distclean: clean
 	rm -rf build
 	rm -rf dist
 
-sdist: egg_info
+sdist:
 	$(PYTHON) setup.py sdist --formats gztar,zip
 
 install:
