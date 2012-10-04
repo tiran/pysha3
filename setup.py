@@ -1,27 +1,19 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from glob import glob
-from struct import calcsize
 
-sha3_files = ["Modules/sha3module.c",
-              "Modules/keccak/KeccakNISTInterface.c",
-              "Modules/keccak/KeccakSponge.c"]
-
-pointer_size = calcsize("P") * 8
-if pointer_size == 32:
-    sha3_files.append("Modules/keccak/KeccakF-1600-opt32.c")
-elif pointer_size == 64:
-    sha3_files.append("Modules/keccak/KeccakF-1600-opt64.c")
-else:
-    raise ValueError(pointer_size)
-
-sha3_depends = glob("Modules/keccak/*.h") + glob("Modules/keccak/*.macros")
-
+exts = []
+sha3_depends =  []
+sha3_depends.extend(glob("Modules/_sha3/keccak/*.c"))
+sha3_depends.extend(glob("Modules/_sha3/keccak/*.h"))
+sha3_depends.extend(glob("Modules/_sha3/keccak/*.macros"))
+exts.append(Extension("_sha3", ["Modules/_sha3/sha3module.c"],
+                      depends=sha3_depends))
 
 setup(
     name="pysha3",
     version="0.1",
-    ext_modules=[Extension("_sha3", sha3_files, depends=sha3_depends)],
+    ext_modules=exts,
     py_modules=["sha3"],
     author="Christian Heimes",
     author_email="christian@python.org",

@@ -17,9 +17,16 @@
 /* SHA3 objects */
 
 #include "Python.h"
-#include "hashlib.h"
+#include "../hashlib.h"
 #include "keccak/KeccakNISTInterface.h"
 
+#include "keccak/KeccakNISTInterface.c"
+#include "keccak/KeccakSponge.c"
+#if SIZEOF_VOID_P == 4
+  #include "keccak/KeccakF-1600-opt32.c"
+#elif SIZEOF_VOID_P == 8
+   #include "keccak/KeccakF-1600-opt64.c"
+#endif
 
 /* #define SHA3_BLOCKSIZE 200 // 1600 bits  */
 #define SHA3_MAX_DIGESTSIZE 64 /* 512 bits */
