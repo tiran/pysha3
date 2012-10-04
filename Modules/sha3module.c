@@ -20,10 +20,9 @@
 #include "hashlib.h"
 #include "keccak/KeccakNISTInterface.h"
 
-/* hard coded for now */
-#define SHA3_MAX_DIGESTSIZE 64
-/* #define SHA3_BLOCKSIZE 1600 / 8 */
 
+/* #define SHA3_BLOCKSIZE 1600 / 8 */
+#define SHA3_MAX_DIGESTSIZE 64 /* 512 / 8 */
 #define SHA3_state hashState
 #define SHA3_init Init
 #define SHA3_process Update
@@ -37,7 +36,6 @@ typedef struct {
     int hashbitlen;
     SHA3_state hash_state;
 } SHA3object;
-
 
 static PyTypeObject SHA3type;
 
@@ -108,10 +106,12 @@ SHA3_digest(SHA3object *self, PyObject *unused)
 
     SHA3_copystate(temp, self->hash_state);
     if (SHA3_done((hashState*)&temp, digest) != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "internal error in SHA3 Final()");
         return NULL;
     }
-    return PyBytes_FromStringAndSize((const char *)digest, self->hashbitlen / 8);
+    return PyBytes_FromStringAndSize((const char *)digest,
+                                      self->hashbitlen / 8);
 }
 
 PyDoc_STRVAR(SHA3_hexdigest__doc__,
@@ -169,7 +169,8 @@ SHA3_update(SHA3object *self, PyObject *args)
     /* add new data, the function takes the length in bits not bytes */
     if (SHA3_process((hashState*)&self->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
         PyBuffer_Release(&buf);
-        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Update()");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "internal error in SHA3 Update()");
         return NULL;
     }
 
@@ -265,27 +266,12 @@ static PyTypeObject SHA3type = {
 };
 
 
-/* The single module-level function: new() */
-
-PyDoc_STRVAR(SHA3_new__doc__,
-"SHA3([string], *, hashbitlen=512) -> SHA3 object\n\
-\n\
-Return a new SHA3 hash object.\n\
-Hashbitlen must be one of 224, 256, 384 or 512.");
-
+/* constructor helper */
 static PyObject *
-SHA3_new(PyObject *self, PyObject *args, PyObject *kwdict)
+SHA3_factory(PyObject *data_obj, int hashbitlen)
 {
-    static char *kwlist[] = {"string", "hashbitlen", NULL};
     SHA3object *new;
-    int hashbitlen = 512;
-    PyObject *data_obj = NULL;
     Py_buffer buf;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O$i:new", kwlist,
-                                     &data_obj, &hashbitlen)) {
-        return NULL;
-    }
 
     if (data_obj)
         GET_BUFFER_VIEW_OR_ERROUT(data_obj, &buf);
@@ -295,13 +281,15 @@ SHA3_new(PyObject *self, PyObject *args, PyObject *kwdict)
     }
 
     if (SHA3_init((hashState*)&new->hash_state, hashbitlen) != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Update()");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "internal error in SHA3 Update()");
         goto error;
     }
 
     if (data_obj) {
         if (SHA3_process(&new->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
-            PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Update()");
+            PyErr_SetString(PyExc_RuntimeError,
+                            "internal error in SHA3 Update()");
             goto error;
         }
         PyBuffer_Release(&buf);
@@ -314,20 +302,114 @@ SHA3_new(PyObject *self, PyObject *args, PyObject *kwdict)
         PyBuffer_Release(&buf);
     }
     return NULL;
+
+}
+
+PyDoc_STRVAR(sha3_new__doc__,
+"sha3([string], *, hashbitlen=512) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object.\n\
+hashbitlen must be one of 224, 256, 384 or 512.");
+
+static PyObject *
+sha3_new(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    static char *kwlist[] = {"string", "hashbitlen", NULL};
+    int hashbitlen = 512;
+    PyObject *data_obj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O$i:sha3", kwlist,
+                                     &data_obj, &hashbitlen)) {
+        return NULL;
+    }
+    return SHA3_factory(data_obj, hashbitlen);
+}
+
+PyDoc_STRVAR(sha3_224__doc__,
+"sha3_224([string]) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object with a hashbit length of 224 bits (28 bytes).");
+
+static PyObject *
+sha3_224(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    static char *kwlist[] = {"string", NULL};
+    PyObject *data_obj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O:sha3_224", kwlist,
+                                     &data_obj)) {
+        return NULL;
+    }
+    return SHA3_factory(data_obj, 224);
+}
+
+
+PyDoc_STRVAR(sha3_256__doc__,
+"sha3_256([string]) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object with a hashbit length of 256 bits (32 bytes).");
+
+static PyObject *
+sha3_256(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    static char *kwlist[] = {"string", NULL};
+    PyObject *data_obj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O:sha3_256", kwlist,
+                                     &data_obj)) {
+        return NULL;
+    }
+    return SHA3_factory(data_obj, 256);
+}
+
+PyDoc_STRVAR(sha3_384__doc__,
+"sha3_384([string]) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object with hashbitlen of 384 bits (28 bytes).");
+
+static PyObject *
+sha3_384(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    static char *kwlist[] = {"string", NULL};
+    PyObject *data_obj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O:sha3_384", kwlist,
+                                     &data_obj)) {
+        return NULL;
+    }
+    return SHA3_factory(data_obj, 384);
+}
+
+PyDoc_STRVAR(sha3_512__doc__,
+"sha3_512([string]) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object with hashbitlen of 512 bits (64 bytes).");
+
+static PyObject *
+sha3_512(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    static char *kwlist[] = {"string", NULL};
+    PyObject *data_obj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "|O:sha3_512", kwlist,
+                                     &data_obj)) {
+        return NULL;
+    }
+    return SHA3_factory(data_obj, 512);
 }
 
 
 /* List of functions exported by this module */
-
 static struct PyMethodDef SHA3_functions[] = {
-    {"sha3",(PyCFunction)SHA3_new, METH_VARARGS|METH_KEYWORDS,SHA3_new__doc__},
+    {"sha3", (PyCFunction)sha3_new, METH_VARARGS|METH_KEYWORDS, sha3_new__doc__},
+    {"sha3_224", (PyCFunction)sha3_224, METH_VARARGS|METH_KEYWORDS, sha3_224__doc__},
+    {"sha3_256", (PyCFunction)sha3_256, METH_VARARGS|METH_KEYWORDS, sha3_256__doc__},
+    {"sha3_384", (PyCFunction)sha3_384, METH_VARARGS|METH_KEYWORDS, sha3_384__doc__},
+    {"sha3_512", (PyCFunction)sha3_512, METH_VARARGS|METH_KEYWORDS, sha3_512__doc__},
     {NULL,      NULL}            /* Sentinel */
 };
 
-
 /* Initialize this module. */
-
-
 static struct PyModuleDef _SHA3module = {
         PyModuleDef_HEAD_INIT,
         "_sha3",
