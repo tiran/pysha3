@@ -119,13 +119,9 @@ class SHA3_512Tests(BaseSHA3Tests):
         ]
 
 
-class SHA3Tests(SHA3_512Tests):
-    new = sha3.sha3
-
 def test_main():
     suite = unittest.TestSuite()
-    classes = [SHA3_224Tests, SHA3_256Tests, SHA3_384Tests, SHA3_512Tests,
-               SHA3Tests]
+    classes = [SHA3_224Tests, SHA3_256Tests, SHA3_384Tests, SHA3_512Tests]
     for cls in classes:
         suite.addTests(unittest.makeSuite(cls))
     return suite

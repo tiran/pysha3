@@ -1,5 +1,5 @@
 pysha3 0.2
-==========
+----------
 
 *Release date: ??-Oct-2012*
 
@@ -9,9 +9,11 @@ pysha3 0.2
 
 - Declare all Keccak functions and globals as static to avoid name clashes.
 
+- Remove alias sha3() for sha3_512().
+
 
 pysha3 0.1
-==========
+----------
 
 *Release date: 04-Oct-2012*
 

@@ -3,5 +3,4 @@
 #
 
 from _sha3 import sha3_224, sha3_256, sha3_384, sha3_512
-sha3 = sha3_512
 
