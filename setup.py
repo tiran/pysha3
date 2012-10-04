@@ -10,6 +10,13 @@ sha3_depends.extend(glob("Modules/_sha3/keccak/*.macros"))
 exts.append(Extension("_sha3", ["Modules/_sha3/sha3module.c"],
                       depends=sha3_depends))
 
+long_description = []
+with open("README.txt") as f:
+    long_description.append(f.read())
+long_description.append("\nChangelog\n=========\n\n")
+with open("CHANGES.txt") as f:
+    long_description.append(f.read())
+
 setup(
     name="pysha3",
     version="0.2dev",
@@ -23,7 +30,7 @@ setup(
     keywords="sha3 sha-3 keccak hash",
     license="PSFL (Keccak: CC0 1.0 Universal)",
     description="SHA-3 for Python 2.6 - 3.4",
-    long_description=open("README.txt").read(),
+    long_description="".join(long_description),
     classifiers=(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
