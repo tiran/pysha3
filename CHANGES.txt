@@ -13,6 +13,8 @@ pysha3 0.2
 
 - Add block_size attribute. Keccak has a internal sponge size of 1600 bits.
 
+- Release GIL around SHA3_update() calls.
+
 
 pysha3 0.1
 ----------

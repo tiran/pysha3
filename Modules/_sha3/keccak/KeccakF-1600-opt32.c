@@ -12,19 +12,19 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include <string.h>
-#include "brg_endian.h"
+/* #include "brg_endian.h" */
 #include "KeccakF-1600-opt32-settings.h"
 #include "KeccakF-1600-interface.h"
 
 typedef unsigned char UINT8;
 typedef unsigned short UINT16;
 typedef unsigned int UINT32;
-typedef unsigned long long int UINT64;
+/* typedef unsigned long long int UINT64; */
 
 #ifdef UseInterleaveTables
 static int interleaveTablesBuilt = 0;
-UINT16 interleaveTable[65536];
-UINT16 deinterleaveTable[65536];
+static UINT16 interleaveTable[65536];
+static UINT16 deinterleaveTable[65536];
 
 static void buildInterleaveTables()
 {
