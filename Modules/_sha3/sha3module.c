@@ -18,8 +18,23 @@
 
 #include "Python.h"
 #include "../hashlib.h"
-#include "keccak/KeccakNISTInterface.h"
 
+/* overwrite Keccak typedefs and defines with sane values from Python.h */
+#ifdef PY_UINT64_T
+  typedef PY_UINT64_T UINT64;
+#else
+  typedef unsigned long long int UINT64;
+#endif
+
+#define IS_BIG_ENDIAN BIG_ENDIAN
+#define IS_LITTLE_ENDIAN LITTLE_ENDIAN
+#define PLATFORM_BYTE_ORDER BYTE_ORDER
+
+/* In order to avoid name clashes with other software I had to declare all
+ * Keccak functions and global data as static. The code is directly included
+ * here to access the static functions.
+ */
+#include "keccak/KeccakNISTInterface.h"
 #include "keccak/KeccakNISTInterface.c"
 #include "keccak/KeccakSponge.c"
 #if SIZEOF_VOID_P == 4
@@ -34,8 +49,8 @@
 #define SHA3_init Init
 #define SHA3_process Update
 #define SHA3_done Final
-#define SHA3_copystate(dest, src) memcpy(&dest, &src, sizeof(SHA3_state))
-#define SHA3_clearstate(state) memset(&state, 0, sizeof(SHA3_state))
+#define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
+#define SHA3_clearstate(state) memset(&(state), 0, sizeof(SHA3_state))
 
 #if PY_VERSION_HEX > 0x03030000
 #  define PY_VERSION_33 1
@@ -43,12 +58,17 @@
 #  define PY_VERSION_33 0
 #endif
 
+
 /* The structure for storing SHA3 info */
 
 typedef struct {
     PyObject_HEAD
     int hashbitlen;
     SHA3_state hash_state;
+#ifdef WITH_THREAD
+    PyThread_type_lock lock;
+#endif
+
 } SHA3object;
 
 static PyTypeObject SHA3type;
@@ -79,7 +99,13 @@ newSHA3object(int hashbitlen)
             return NULL;
     }
     newobj = (SHA3object *)PyObject_New(SHA3object, &SHA3type);
+    if (newobj == NULL) {
+        return NULL;
+    }
     newobj->hashbitlen = hashbitlen;
+#ifdef WITH_THREAD
+    newobj->lock = NULL;
+#endif
     return newobj;
 }
 
@@ -87,16 +113,15 @@ newSHA3object(int hashbitlen)
 /* Internal methods for a hash object */
 
 static void
-SHA3_dealloc(PyObject *ptr)
-{
-    PyObject_Del(ptr);
-}
-
-static int
-SHA3_clear(SHA3object *self)
+SHA3_dealloc(SHA3object *self)
 {
     SHA3_clearstate(self->hash_state);
-    return 0;
+#ifdef WITH_THREAD
+    if (self->lock) {
+        PyThread_free_lock(self->lock);
+    }
+#endif
+    PyObject_Del(self);
 }
 
 
@@ -112,7 +137,9 @@ SHA3_copy(SHA3object *self, PyObject *unused)
     if ((newobj = newSHA3object(self->hashbitlen)) == NULL) {
         return NULL;
     }
+    ENTER_HASHLIB(self);
     SHA3_copystate(newobj->hash_state, self->hash_state);
+    LEAVE_HASHLIB(self);
     return (PyObject *)newobj;
 }
 
@@ -127,7 +154,9 @@ SHA3_digest(SHA3object *self, PyObject *unused)
     SHA3_state temp;
     HashReturn res;
 
+    ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
+    LEAVE_HASHLIB(self);
     res = SHA3_done((hashState*)&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
@@ -159,7 +188,9 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
     int digestlen, i, j;
 
     /* Get the raw (binary) digest value */
+    ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
+    LEAVE_HASHLIB(self);
     res = SHA3_done((hashState*)&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
@@ -193,7 +224,6 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
             return NULL;
     }
 #endif
-
 
     /* Make hex version of the digest */
 #if PY_VERSION_33
@@ -235,7 +265,29 @@ SHA3_update(SHA3object *self, PyObject *args)
     GET_BUFFER_VIEW_OR_ERROUT(obj, &buf);
 
     /* add new data, the function takes the length in bits not bytes */
-    res = SHA3_process((hashState*)&self->hash_state, buf.buf, buf.len * 8);
+#ifdef WITH_THREADS
+    if (self->lock == NULL && buf.len >= GIL_RELEASE_MINSIZE) {
+        self->lock = PyThread_allocate_lock();
+    }
+    /* Once a lock exists all code paths must be syncronized. We have to
+     * release the GIL even for small buffers as acquiring the lock may take
+     * an unlimited amount of time when another thread updates this object
+     * with lots of data. */
+    if (self->lock) {
+        Py_BEGIN_ALLOW_THREADS
+        PyThread_acquire_lock(self->lock, 1);
+        res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+        PyThread_release_lock(self->lock);
+        Py_END_ALLOW_THREADS
+    }
+    else {
+        res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+    }
+#else
+    res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+#endif
+    LEAVE_HASHLIB(self);
+
     if (res != SUCCESS) {
         PyBuffer_Release(&buf);
         PyErr_SetString(PyExc_RuntimeError,
@@ -304,7 +356,7 @@ static PyTypeObject SHA3type = {
     sizeof(SHA3object), /* tp_size */
     0,                  /* tp_itemsize */
     /*  methods  */
-    SHA3_dealloc,       /* tp_dealloc */
+    (destructor)SHA3_dealloc, /* tp_dealloc */
     0,                  /* tp_print */
     0,                  /* tp_getattr */
     0,                  /* tp_setattr */
@@ -322,7 +374,7 @@ static PyTypeObject SHA3type = {
     Py_TPFLAGS_DEFAULT, /* tp_flags */
     0,                  /* tp_doc */
     0,                  /* tp_traverse */
-    (inquiry)SHA3_clear, /* tp_clear */
+    0,                  /* tp_clear */
     0,                  /* tp_richcompare */
     0,                  /* tp_weaklistoffset */
     0,                  /* tp_iter */
@@ -342,6 +394,7 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
     static char *kwlist[] = {"string", NULL};
     PyObject *data_obj = NULL;
     Py_buffer buf;
+    HashReturn res;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwdict, fmt, kwlist,
                                      &data_obj)) {
@@ -362,7 +415,22 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
     }
 
     if (data_obj) {
-        if (SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8) != SUCCESS) {
+#ifdef WITH_THREADS
+        if (buf.len >= GIL_RELEASE_MINSIZE) {
+            /* invariant: New objects can't be accessed by other code yet,
+             * thus it's safe to release the GIL without locking the object.
+             */
+            Py_BEGIN_ALLOW_THREADS
+            res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
+            Py_END_ALLOW_THREADS
+        }
+        else {
+            res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
+        }
+#else
+        res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
+#endif
+        if (res != SUCCESS) {
             PyErr_SetString(PyExc_RuntimeError,
                             "internal error in SHA3 Update()");
             goto error;
@@ -375,6 +443,7 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
   error:
     if (newobj) {
         SHA3_clearstate(newobj->hash_state);
+        /* self->lock is always NULL */
     }
     if (data_obj) {
         PyBuffer_Release(&buf);

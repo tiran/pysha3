@@ -12,12 +12,12 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include <string.h>
-#include "brg_endian.h"
+/* #include "brg_endian.h" */
 #include "KeccakF-1600-opt64-settings.h"
 #include "KeccakF-1600-interface.h"
 
 typedef unsigned char UINT8;
-typedef unsigned long long int UINT64;
+/* typedef unsigned long long int UINT64; */
 
 #if defined(__GNUC__)
 #define ALIGN __attribute__ ((aligned(32)))
