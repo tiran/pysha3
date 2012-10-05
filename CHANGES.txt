@@ -15,6 +15,9 @@ pysha3 0.2
 
 - Release GIL around SHA3_update() calls.
 
+- Monkey patch the hashlib module to support, e.g. hashlib.sha3_512() and
+  hashlib.new("sha3_512")
+
 
 pysha3 0.1
 ----------

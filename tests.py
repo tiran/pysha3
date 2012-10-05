@@ -1,6 +1,7 @@
 import sys
 import unittest
 import sha3
+import hashlib
 
 if sys.version_info[0] == 3:
     fromhex = bytes.fromhex
@@ -61,6 +62,20 @@ class BaseSHA3Tests(unittest.TestCase):
         self.assertEqual(sha3type.__module__, "_sha3")
         self.assertRaises(TypeError, sha3type)
         self.assertRaises(TypeError, type, sha3type, "subclass", {})
+
+    def test_hashlib(self):
+        constructor = getattr(hashlib, self.name)
+        s1 = constructor()
+        self.assertEqual(s1.name, self.name)
+        self.assertEqual(s1.digest_size, self.digest_size)
+
+        s2 = hashlib.new(self.name)
+        self.assertEqual(s2.name, self.name)
+        self.assertEqual(s2.digest_size, self.digest_size)
+        self.assertIs(type(s1), type(s2))
+
+        if sys.version_info < (3, 4):
+            self.assertIs(constructor, self.new)
 
     def test_vectors(self):
         for hexmsg, hexdigest in self.vectors:
