@@ -30,6 +30,7 @@ clean:
 distclean: clean
 	rm -rf build
 	rm -rf dist
+	find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or -name 'core*' \) -delete
 
 sdist:
 	$(PYTHON) setup.py sdist --formats gztar,zip
