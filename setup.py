@@ -19,7 +19,7 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="0.2dev",
+    version="0.2",
     ext_modules=exts,
     py_modules=["sha3"],
     author="Christian Heimes",
@@ -29,7 +29,7 @@ setup(
     url="https://bitbucket.org/tiran/pykeccak",
     keywords="sha3 sha-3 keccak hash",
     license="PSFL (Keccak: CC0 1.0 Universal)",
-    description="SHA-3 for Python 2.6 - 3.4",
+    description="SHA-3 (Keccak) for Python 2.6 - 3.4",
     long_description="".join(long_description),
     classifiers=(
         'Development Status :: 4 - Beta',

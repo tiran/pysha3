@@ -1,7 +1,7 @@
 pysha3 0.2
 ----------
 
-*Release date: ??-Oct-2012*
+*Release date: 06-Oct-2012*
 
 - Change directory struct to use the same directory layout as Python 3.4.
 
