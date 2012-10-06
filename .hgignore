@@ -2,6 +2,7 @@
 ^dist/
 ^core
 ^MANIFEST
+^README\.html
 
 ^.project
 ^.pydevproject
