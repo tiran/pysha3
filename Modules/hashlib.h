@@ -55,5 +55,7 @@
     #define LEAVE_HASHLIB(obj)
 #endif
 
-/* Threshold size for initial GIL release. */
-#define GIL_RELEASE_MINSIZE 2048
+/* TODO(gps): We should probably make this a module or EVPobject attribute
+ * to allow the user to optimize based on the platform they're using. */
+#define HASHLIB_GIL_MINSIZE 2048
+

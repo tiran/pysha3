@@ -18,6 +18,11 @@ pysha3 0.2
 - Monkey patch the hashlib module to support, e.g. hashlib.sha3_512() and
   hashlib.new("sha3_512")
 
+- Release GIL around SHA3_update() when the data exceeds a certain size.
+
+- Fix build on platforms with an unsigned 64bit integer type (uint64_t). The
+  module falls back to 32bit implementation of Keccak with interleave tables.
+
 
 pysha3 0.1
 ----------

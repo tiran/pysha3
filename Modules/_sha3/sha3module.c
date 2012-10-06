@@ -8,39 +8,128 @@
  *  Andrew Kuchling (amk@amk.ca)
  *  Greg Stein (gstein@lyra.org)
  *  Trevor Perrin (trevp@trevp.net)
+ *  Gregory P. Smith (greg@krypto.org)
  *
  *  Copyright (C) 2012   Christian Heimes (christian@python.org)
  *  Licensed to PSF under a Contributor Agreement.
  *
  */
 
-/* SHA3 objects */
-
 #include "Python.h"
 #include "../hashlib.h"
 
-/* overwrite Keccak typedefs and defines with sane values from Python.h */
-#ifdef PY_UINT64_T
+/* **************************************************************************
+ *                             SHA-3 (Keccak)
+ *
+ * The code is based on KeccakReferenceAndOptimized-3.2.zip from 29 May 2012.
+ *
+ * The reference implementation is altered in this points:
+ *  - C++ comments are converted to ANSI C comments.
+ *  - All functions and globals are declared static.
+ *  - The typedef for UINT64 is commented out.
+ *  - brg_endian.h is removed.
+ *  - KeccakF-1600-opt[32|64]-settings.h are commented out
+ *  - Some unused functions are commented out to silence compiler warnings.
+ *
+ * In order to avoid name clashes with other software I have to declare all
+ * Keccak functions and global data as static. The C code is directly
+ * included into this file in order to access the static functions.
+ *
+ * Keccak can be tuned with several paramenters. I try to explain all options
+ * as far as I understand them. The reference implementation also contains
+ * assembler code for ARM platforms (NEON instructions).
+ *
+ * Common
+ * ======
+ *
+ * Options:
+ *   UseBebigokimisa, Unrolling
+ *
+ * - Unrolling: loop unrolling (24, 12, 8, 6, 4, 3, 2, 1)
+ * - UseBebigokimisa: lane complementing
+ *
+ * 64bit platforms
+ * ===============
+ *
+ * Additional options:
+ *   UseSSE, UseOnlySIMD64, UseMMX, UseXOP, UseSHLD
+ *
+ * Optimized instructions (disabled by default):
+ *   - UseSSE: use Stream SIMD extensions
+ *     o UseOnlySIMD64: limit to 64bit instructions, otherwise 128bit
+ *     o w/o UseOnlySIMD64: requires compiler agument -mssse3 or -mtune
+ *   - UseMMX: use 64bit MMX instructions
+ *   - UseXOP: use AMD's eXtended Operations (128bit SSE extension)
+ *
+ * Other:
+ *   - Unrolling: default 24
+ *   - UseBebigokimisa: default 1
+ *
+ * When neither UseSSE, UseMMX nor UseXOP is configured, ROL64 (rotate left
+ * 64) is implemented as:
+ *   - Windows: _rotl64()
+ *   - UseSHLD: use shld (shift left) asm optimization
+ *   - otherwise: shift and xor
+ *
+ * UseBebigokimisa can't be used in combination with UseSSE, UseMMX or
+ * UseXOP. UseOnlySIMD64 has no effect unless UseSSE is specified.
+ *
+ * Tests have shown that UseSSE + UseOnlySIMD64 is about three to four
+ * times SLOWER than UseBebigokimisa. UseSSE and UseMMX are about two times
+ * slower. (tested by CH and AP)
+ *
+ * 32bit platforms
+ * ===============
+ *
+ * Additional options:
+ *   UseInterleaveTables, UseSchedule
+ *
+ *   - Unrolling: default 2
+ *   - UseBebigokimisa: default n/a
+ *   - UseSchedule: ???, (1, 2, 3; default 3)
+ *   - UseInterleaveTables: use two 64k lookup tables for (de)interleaving
+ *     default: n/a
+ *
+ * schedules:
+ *   - 3: no UseBebigokimisa, Unrolling must be 2
+ *   - 2 + 1: ???
+ *
+ * *************************************************************************/
+
+#if SIZEOF_VOID_P == 8 && defined(PY_UINT64_T)
+ /* 64bit platforms with unsigned int64 */
+  #define KeccakImplementation 64
+  #define Unrolling 24
+  #define UseBebigokimisa
+  typedef PY_UINT64_T UINT64;
+#elif SIZEOF_VOID_P == 4  && defined(PY_UINT64_T)
+  /* 32bit platforms with unsigned int64 */
+  #define KeccakImplementation 32
+  #define Unrolling 2
+  #define UseSchedule 3
   typedef PY_UINT64_T UINT64;
 #else
-  typedef unsigned long long int UINT64;
+  /* 32 or 64bit platforms without unsigned int64 */
+  #warning no uint64_t available, force Keccak opt32 with interleave tables
+  #define KeccakImplementation 32
+  #define Unrolling 2
+  #define UseSchedule 3
+  #define UseInterleaveTables
 #endif
 
+/* replacement for brg_endian.h */
 #define IS_BIG_ENDIAN BIG_ENDIAN
 #define IS_LITTLE_ENDIAN LITTLE_ENDIAN
 #define PLATFORM_BYTE_ORDER BYTE_ORDER
 
-/* In order to avoid name clashes with other software I had to declare all
- * Keccak functions and global data as static. The code is directly included
- * here to access the static functions.
- */
+/* inline all Keccak dependencies */
 #include "keccak/KeccakNISTInterface.h"
 #include "keccak/KeccakNISTInterface.c"
 #include "keccak/KeccakSponge.c"
-#if SIZEOF_VOID_P == 4
+#if KeccakImplementation == 64
+  #include "keccak/KeccakF-1600-opt64.c"
+#elif KeccakImplementation == 32
   #include "keccak/KeccakF-1600-opt32.c"
-#elif SIZEOF_VOID_P == 8
-   #include "keccak/KeccakF-1600-opt64.c"
 #endif
 
 #define SHA3_BLOCKSIZE 200 /* 1600 bits  */
@@ -57,7 +146,6 @@
 #else
 #  define PY_VERSION_33 0
 #endif
-
 
 /* The structure for storing SHA3 info */
 
@@ -157,7 +245,7 @@ SHA3_digest(SHA3object *self, PyObject *unused)
     ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
     LEAVE_HASHLIB(self);
-    res = SHA3_done((hashState*)&temp, digest);
+    res = SHA3_done(&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
@@ -191,7 +279,7 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
     ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
     LEAVE_HASHLIB(self);
-    res = SHA3_done((hashState*)&temp, digest);
+    res = SHA3_done(&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
@@ -266,10 +354,10 @@ SHA3_update(SHA3object *self, PyObject *args)
 
     /* add new data, the function takes the length in bits not bytes */
 #ifdef WITH_THREADS
-    if (self->lock == NULL && buf.len >= GIL_RELEASE_MINSIZE) {
+    if (self->lock == NULL && buf.len >= HASHLIB_GIL_MINSIZE) {
         self->lock = PyThread_allocate_lock();
     }
-    /* Once a lock exists all code paths must be syncronized. We have to
+    /* Once a lock exists all code paths must be synchronized. We have to
      * release the GIL even for small buffers as acquiring the lock may take
      * an unlimited amount of time when another thread updates this object
      * with lots of data. */
@@ -320,6 +408,7 @@ SHA3_get_block_size(SHA3object *self, void *closure)
 #else
     return PyInt_FromLong(SHA3_BLOCKSIZE);
 #endif
+
 }
 
 static PyObject *
@@ -408,7 +497,7 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
         goto error;
     }
 
-    if (SHA3_init((hashState*)&newobj->hash_state, hashbitlen) != SUCCESS) {
+    if (SHA3_init(&newobj->hash_state, hashbitlen) != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError,
                         "internal error in SHA3 Update()");
         goto error;
@@ -416,7 +505,7 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
 
     if (data_obj) {
 #ifdef WITH_THREADS
-        if (buf.len >= GIL_RELEASE_MINSIZE) {
+        if (buf.len >= HASHLIB_GIL_MINSIZE) {
             /* invariant: New objects can't be accessed by other code yet,
              * thus it's safe to release the GIL without locking the object.
              */
@@ -442,8 +531,7 @@ SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
 
   error:
     if (newobj) {
-        SHA3_clearstate(newobj->hash_state);
-        /* self->lock is always NULL */
+        SHA3_dealloc(newobj);
     }
     if (data_obj) {
         PyBuffer_Release(&buf);
