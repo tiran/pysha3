@@ -4,4 +4,5 @@ include CHANGES.txt
 include LICENSE
 include MANIFEST.in
 include setup.py
+include tests.py
 recursive-include Modules *.c *.h *.macros
