@@ -1,7 +1,36 @@
 #!/usr/bin/env python
-from distutils.core import setup
+import sys
+import os
+import subprocess
+from distutils.core import setup, Command
 from distutils.extension import Extension
 from glob import glob
+
+
+class TestCommand(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        # hack inplace build into build_ext
+        options = self.distribution.command_options
+        extoptions = options.setdefault("build_ext", {})
+        extoptions["inplace"] = ("hack", True)
+
+    def run(self):
+        # All Python 2.x versions share the same library name. Remove the
+        # file to fix version mismatch errors.
+        for soext in ("so", "dylib", "pyd"):
+            for fname in glob("_sha3." + soext):
+                os.unlink(fname)
+        # force build
+        self.run_command("build")
+
+        errno = subprocess.call([sys.executable, "tests.py"])
+        raise SystemExit(errno)
+
 
 exts = []
 sha3_depends =  []
@@ -23,6 +52,7 @@ setup(
     version="0.3dev",
     ext_modules=exts,
     py_modules=["sha3"],
+    cmdclass = {"test": TestCommand},
     author="Christian Heimes",
     author_email="christian@python.org",
     maintainer="Christian Heimes",
