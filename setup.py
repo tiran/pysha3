@@ -8,6 +8,8 @@ from glob import glob
 
 
 class TestCommand(Command):
+    """Hack for setup.py with implicit build_ext -i
+    """
     user_options = []
 
     def initialize_options(self):
@@ -19,16 +21,25 @@ class TestCommand(Command):
         extoptions = options.setdefault("build_ext", {})
         extoptions["inplace"] = ("hack", True)
 
+    def remove_ext(self):
+        """Remove extensions
+
+        All Python 2.x versions share the same library name. Remove the
+        file to fix version mismatch errors.
+        """
+        root = os.getcwd()
+        for fname in os.listdir(root):
+            if fname.endswith(("so", "dylib", "pyd")):
+                os.unlink(os.path.join(root, fname))
+
     def run(self):
-        # All Python 2.x versions share the same library name. Remove the
-        # file to fix version mismatch errors.
-        for soext in ("so", "dylib", "pyd"):
-            for fname in glob("_sha3." + soext):
-                os.unlink(fname)
-        # force build
+        if sys.version_info[0] < 3:
+            self.remove_ext()
+
+        # force a build with build_ext -i
         self.run_command("build")
 
-        errno = subprocess.call([sys.executable, "tests.py"])
+        errno = subprocess.check_call([sys.executable, "tests.py"])
         raise SystemExit(errno)
 
 
@@ -43,7 +54,6 @@ exts.append(Extension("_sha3", ["Modules/_sha3/sha3module.c"],
 long_description = []
 with open("README.txt") as f:
     long_description.append(f.read())
-long_description.append("\nChangelog\n=========\n\n")
 with open("CHANGES.txt") as f:
     long_description.append(f.read())
 
@@ -61,7 +71,7 @@ setup(
     keywords="sha3 sha-3 keccak hash",
     license="PSFL (Keccak: CC0 1.0 Universal)",
     description="SHA-3 (Keccak) for Python 2.6 - 3.4",
-    long_description="".join(long_description),
+    long_description="\n".join(long_description),
     classifiers=(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
