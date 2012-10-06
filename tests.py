@@ -72,10 +72,10 @@ class BaseSHA3Tests(unittest.TestCase):
         s2 = hashlib.new(self.name)
         self.assertEqual(s2.name, self.name)
         self.assertEqual(s2.digest_size, self.digest_size)
-        self.assertIs(type(s1), type(s2))
+        self.assertEqual(type(s1), type(s2))
 
         if sys.version_info < (3, 4):
-            self.assertIs(constructor, self.new)
+            self.assertEqual(constructor, self.new)
 
     def test_vectors(self):
         for hexmsg, hexdigest in self.vectors:
