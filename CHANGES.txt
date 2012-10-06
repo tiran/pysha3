@@ -1,14 +1,16 @@
 Changelog
 =========
 
-pysha3 0.3
-----------
+pysha3 0.2.1
+------------
 
-*Release date: ??-???-2012*
+*Release date: 06-Oct-2012*
 
 - fixed MANIFEST.in to include Makefile and tests.py
 
 - added setup.py test command with hack for inplace builds
+
+- enhanced README.txt and fixed its markup
 
 
 pysha3 0.2
