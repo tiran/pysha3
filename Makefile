@@ -9,7 +9,8 @@ INSTALLFLAGS=
 all: inplace README.html
 
 README.html: README.txt CHANGES.txt
-	@echo | cat README.txt - CHANGES.txt | rst2html > README.html
+	@echo | cat README.txt - CHANGES.txt | \
+	    rst2html --verbose --exit-status=1 > README.html
 
 inplace:
 	$(PYTHON) setup.py $(SETUPFLAGS) build_ext -i $(COMPILEFLAGS)
@@ -29,6 +30,7 @@ fulltest:
 clean:
 	$(PYTHON) setup.py clean --all
 	find . \( -name '*.o' -or -name '*.so' -or -name '*.py[cod]' \) -delete
+	rm -f README.html
 
 distclean: clean
 	rm -rf build
