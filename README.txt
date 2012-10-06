@@ -126,13 +126,13 @@ default settings of common options
 
  `UseSchedule`
    `1`
-     ???
+     unknown
 
    `2`
-     ???
+     unknown
 
-   `3` default
-    no `UseBebigokimisa`, `Unrolling` must be 2
+   `3` [default]
+     unknown, no `UseBebigokimisa`, `Unrolling` must be 2
 
   `UseInterleaveTables`
     use two 64k lookup tables for (de)interleaving (disabled by default)
