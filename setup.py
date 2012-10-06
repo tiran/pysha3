@@ -2,9 +2,9 @@
 import sys
 import os
 import subprocess
+from glob import glob
 from distutils.core import setup, Command
 from distutils.extension import Extension
-from glob import glob
 
 
 class TestCommand(Command):
@@ -59,7 +59,7 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="0.3dev",
+    version="0.2.1",
     ext_modules=exts,
     py_modules=["sha3"],
     cmdclass = {"test": TestCommand},
