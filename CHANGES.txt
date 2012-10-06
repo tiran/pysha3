@@ -3,6 +3,10 @@ pysha3 0.3
 
 *Release date: ??-???-2012*
 
+- fixed MANIFEST.in to include Makefile and tests.py
+
+- added setup.py test command with hack for inplace builds
+
 
 pysha3 0.2
 ----------
