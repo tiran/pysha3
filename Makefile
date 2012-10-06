@@ -6,10 +6,13 @@ INSTALLFLAGS=
 .PHONY: inplace all rebuild test_inplace test fulltests clean distclean
 .PHONY: sdist install
 
+all: inplace README.html
+
+README.html: README.txt CHANGES.txt
+	@echo | cat README.txt - CHANGES.txt | rst2html > README.html
+
 inplace:
 	$(PYTHON) setup.py $(SETUPFLAGS) build_ext -i $(COMPILEFLAGS)
-
-all: inplace
 
 rebuild: clean all
 
