@@ -1,6 +1,13 @@
 Changelog
 =========
 
+pysha3 0.2.2
+------------
+
+*Release date: ??-Oct-2012*
+
+- Re-add brg_endian.h to fix issue on Solaris (big endian platform)
+
 pysha3 0.2.1
 ------------
 

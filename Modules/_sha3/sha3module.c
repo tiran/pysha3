@@ -27,7 +27,6 @@
  *  - C++ comments are converted to ANSI C comments.
  *  - All functions and globals are declared static.
  *  - The typedef for UINT64 is commented out.
- *  - brg_endian.h is removed.
  *  - KeccakF-1600-opt[32|64]-settings.h are commented out
  *  - Some unused functions are commented out to silence compiler warnings.
  *
@@ -116,10 +115,11 @@
   #define UseInterleaveTables
 #endif
 
-/* replacement for brg_endian.h */
+/* replacement for brg_endian.h
 #define IS_BIG_ENDIAN BIG_ENDIAN
 #define IS_LITTLE_ENDIAN LITTLE_ENDIAN
 #define PLATFORM_BYTE_ORDER BYTE_ORDER
+*/
 
 /* inline all Keccak dependencies */
 #include "keccak/KeccakNISTInterface.h"
