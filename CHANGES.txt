@@ -1,6 +1,13 @@
 Changelog
 =========
 
+pysha3 0.2.3
+------------
+
+*Release date: ??-???-2012*
+
+- Fix 64bit big endian support
+
 pysha3 0.2.2
 ------------
 
@@ -13,11 +20,11 @@ pysha3 0.2.1
 
 *Release date: 06-Oct-2012*
 
-- fixed MANIFEST.in to include Makefile and tests.py
+- Fix MANIFEST.in to include Makefile and tests.py
 
-- added setup.py test command with hack for inplace builds
+- Add setup.py test command with hack for inplace builds
 
-- enhanced README.txt and fixed its markup
+- Enhance README.txt and fixed its markup
 
 
 pysha3 0.2
