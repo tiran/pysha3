@@ -39,7 +39,7 @@ distclean: clean
 	rm -rf dist
 	find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or -name 'core*' \) -delete
 
-sdist:
+sdist: README.html
 	$(PYTHON) setup.py sdist --formats gztar,zip
 
 install:

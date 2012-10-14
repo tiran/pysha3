@@ -44,7 +44,7 @@ class TestCommand(Command):
 
 
 exts = []
-sha3_depends =  []
+sha3_depends = ["Modules/hashlib.h"]
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.c"))
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.h"))
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.macros"))
@@ -59,7 +59,7 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="0.2.3dev",
+    version="0.3",
     ext_modules=exts,
     py_modules=["sha3"],
     cmdclass = {"test": TestCommand},
@@ -73,13 +73,20 @@ setup(
     description="SHA-3 (Keccak) for Python 2.6 - 3.4",
     long_description="\n".join(long_description),
     classifiers=(
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Python Software Foundation License',
-        'Natural Language :: English',
-        'Operating System :: POSIX',
-        'Operating System :: Microsoft :: Windows',
-        'Programming Language :: C',
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Python Software Foundation License",
+        "License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
+        "Natural Language :: English",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: POSIX",
+        "Operating System :: POSIX :: AIX",
+        "Operating System :: POSIX :: BSD",
+        "Operating System :: POSIX :: HP-UX",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: POSIX :: SunOS/Solaris",
+        "Operating System :: Microsoft :: Windows",
+        "Programming Language :: C",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.6",
@@ -88,6 +95,6 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
         #"Programming Language :: Python :: 3.4",
-        'Topic :: Security :: Cryptography',
+        "Topic :: Security :: Cryptography",
     ),
 )
