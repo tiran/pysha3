@@ -8,6 +8,9 @@ pysha3 0.2.3
 
 - Fix 64bit big endian support
 
+- Add workaround for alignment error on 64bit SPARC machine by using the opt32
+  implementation.
+
 pysha3 0.2.2
 ------------
 
