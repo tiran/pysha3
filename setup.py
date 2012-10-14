@@ -69,10 +69,11 @@ setup(
     maintainer_email="christian@python.org",
     url="https://bitbucket.org/tiran/pykeccak",
     keywords="sha3 sha-3 keccak hash",
+    platforms="POSIX, Windows",
     license="PSFL (Keccak: CC0 1.0 Universal)",
     description="SHA-3 (Keccak) for Python 2.6 - 3.4",
     long_description="\n".join(long_description),
-    classifiers=(
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Python Software Foundation License",
@@ -96,5 +97,5 @@ setup(
         "Programming Language :: Python :: 3.3",
         #"Programming Language :: Python :: 3.4",
         "Topic :: Security :: Cryptography",
-    ),
+    ],
 )
