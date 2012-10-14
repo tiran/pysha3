@@ -95,12 +95,23 @@
  *
  * *************************************************************************/
 
+/* from Include/pyport.h for Python < 2.7 */
+#if (defined UINT64_MAX || defined uint64_t)
+#ifndef PY_UINT64_T
+#define HAVE_UINT64_T 1
+#define PY_UINT64_T uint64_t
+#endif
+#endif
+
 #ifdef __sparc
-  /* On SPARC with Solaris CC opt64 fails with 'invalid address alignment' */
+  /* opt64 uses un-aligned memory access that causes a BUS error with msg
+   * 'invalid address alignment' on SPARC. */
   #define KeccakOpt 32
-#elif SIZEOF_VOID_P == 8
+#elif SIZEOF_VOID_P == 8 && defined(PY_UINT64_T)
+  /* opt64 works only for 64bit platforms with unsigned int64 */
   #define KeccakOpt 64
-#elif SIZEOF_VOID_P == 4
+#else
+  /* opt32 is used for the remaining 32 and 64bit platforms */
   #define KeccakOpt 32
 #endif
 
@@ -109,7 +120,7 @@
   #define Unrolling 24
   #define UseBebigokimisa
   typedef PY_UINT64_T UINT64;
-#elif KeccakOpt == 32  && defined(PY_UINT64_T)
+#elif KeccakOpt == 32 && defined(PY_UINT64_T)
   /* 32bit platforms with unsigned int64 */
   #define Unrolling 2
   #define UseSchedule 3
