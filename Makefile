@@ -23,9 +23,11 @@ test_inplace: inplace
 test: test_inplace
 
 fulltest:
+	python2.6 setup.py $(SETUPFLAGS) test
 	python2.7 setup.py $(SETUPFLAGS) test
 	python3.2 setup.py $(SETUPFLAGS) test
 	python3.3 setup.py $(SETUPFLAGS) test
+	python3.4 setup.py $(SETUPFLAGS) test
 
 clean:
 	$(PYTHON) setup.py clean --all
