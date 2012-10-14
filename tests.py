@@ -2,6 +2,7 @@ import sys
 import unittest
 import sha3
 import hashlib
+import hmac
 
 if sys.version_info[0] == 3:
     fromhex = bytes.fromhex
@@ -17,6 +18,7 @@ class BaseSHA3Tests(unittest.TestCase):
     new = None
     name = None
     digest_size = None
+    block_size = NotImplemented
     vectors = []
 
     def assertHashDigest(self, hexmsg, hexdigest):
@@ -44,6 +46,7 @@ class BaseSHA3Tests(unittest.TestCase):
         sha3 = self.new()
         self.assertEqual(sha3.name, self.name)
         self.assertEqual(sha3.digest_size, self.digest_size)
+        self.assertEqual(sha3.block_size, self.block_size)
         self.assertEqual(len(sha3.digest()), self.digest_size)
         self.assertEqual(len(sha3.hexdigest()), self.digest_size * 2)
 
@@ -80,6 +83,9 @@ class BaseSHA3Tests(unittest.TestCase):
     def test_vectors(self):
         for hexmsg, hexdigest in self.vectors:
             self.assertHashDigest(hexmsg, hexdigest)
+
+    def test_hmac(self):
+        self.assertRaises(TypeError, hmac.new, b"", b"", self.new)
 
 
 class SHA3_224Tests(BaseSHA3Tests):
