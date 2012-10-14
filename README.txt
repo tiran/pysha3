@@ -10,6 +10,21 @@ The module is a standalone version of the SHA-3 implemention of Python 3.4
 (currently under development).
 
 
+Platforms
+=========
+
+pysha3 has been successfully tested on several platforms and architectures:
+
+ - Linux (GCC 4.3, GCC 4.6, clang 3.0) on X86, X86_64 and ARMv6
+ - Windows (VS 2008, VS 2010) on X86 and X86_64
+ - FreeBSD (clang) on X86 and X86_64
+ - HP-UX (HP C/aC++) on IA64
+ - Solaris 10 (Oracle Solaris Studio 12.3) on SPARC (big endian)
+ - AIX (XLC 12.1) on PowerPC (big endian)
+
+Thank you very much to Trend Nelson for the SnakeBite network.
+
+
 Usage
 =====
 
