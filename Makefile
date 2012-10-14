@@ -23,9 +23,9 @@ test_inplace: inplace
 test: test_inplace
 
 fulltest:
-	$(MAKE) PYTHON=python2.7 clean test
-	$(MAKE) PYTHON=python3.2 clean test
-	$(MAKE) PYTHON=python3.3 clean test
+	python2.7 setup.py $(SETUPFLAGS) test
+	python3.2 setup.py $(SETUPFLAGS) test
+	python3.3 setup.py $(SETUPFLAGS) test
 
 clean:
 	$(PYTHON) setup.py clean --all
