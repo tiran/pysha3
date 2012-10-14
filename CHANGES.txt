@@ -11,6 +11,9 @@ pysha3 0.2.3
 - Add workaround for alignment error on 64bit SPARC machine by using the opt32
   implementation.
 
+- block_size now returns NotImplemented to prevent users from using pysha3
+  with the hmac module.
+
 pysha3 0.2.2
 ------------
 

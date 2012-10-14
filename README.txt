@@ -7,7 +7,9 @@ the optimizations for 32 and 64bit platforms are used. The optimized SSE and
 ARM assembly variants are ignored for now.
 
 The module is a standalone version of the SHA-3 implemention of Python 3.4
-(currently under development).
+(currently under development). The code in sha3module.c has been modified to
+be compatible with Python 2.6 to 3.4. Python 2.5 and earlier are not
+supported.
 
 
 Platforms
@@ -51,6 +53,9 @@ and rather go through the `hashlib` interface::
   >>> s.update(b"data")
   >>> s.hexdigest()
   '1065aceeded3a5e4412e2187e919bffeadf815f5bd73d37fe00d384fe29f55f08462fdabe1007b993ce5b8119630e7db93101d9425d6e352e22ffe3dcb56b825'
+
+**Don't use SHA-3 for HMAC!** HMAC hasn't been specified for SHA-3 yet and no
+test vectors are available, too.
 
 
 Comments from sha3module header
