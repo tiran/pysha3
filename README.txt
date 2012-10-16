@@ -17,10 +17,10 @@ Platforms
 
 pysha3 has been successfully tested on several platforms and architectures:
 
- - Linux (GCC 4.3, GCC 4.6, clang 3.0) on X86, X86_64 and ARMv6
+ - Linux (GCC 4.3 and 4.6, clang 3.0) on X86, X86_64 and ARMv6 (little endian)
  - Windows (VS 2008, VS 2010) on X86 and X86_64
- - FreeBSD (clang) on X86 and X86_64
- - HP-UX (HP C/aC++) on IA64
+ - FreeBSD 7.4 - 10 (GCC, clang) on X86 and X86_64
+ - HP-UX (HP C/aC++) on IA64 (little endian) and PA-RISC (big endian)
  - Solaris 10 (Oracle Solaris Studio 12.3) on SPARC (big endian)
  - AIX (XLC 12.1) on PowerPC (big endian)
 

@@ -29,7 +29,7 @@ class TestCommand(Command):
         """
         root = os.getcwd()
         for fname in os.listdir(root):
-            if fname.endswith(("so", "dylib", "pyd")):
+            if fname.endswith(("so", "dylib", "pyd", "sl")):
                 os.unlink(os.path.join(root, fname))
 
     def run(self):
