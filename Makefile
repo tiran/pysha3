@@ -31,13 +31,15 @@ fulltest:
 
 clean:
 	$(PYTHON) setup.py clean --all
-	find . \( -name '*.o' -or -name '*.so' -or -name '*.py[cod]' \) -delete
+	find . \( -name '*.o' -or -name '*.so' -or -name '*.sl' -or
+	          -name '*.py[cod]' \) -delete
 	rm -f README.html
 
 distclean: clean
 	rm -rf build
 	rm -rf dist
-	find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or -name 'core*' \) -delete
+	find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or
+	          -name 'core*' \) -delete
 
 sdist: README.html
 	$(PYTHON) setup.py sdist --formats gztar,zip
