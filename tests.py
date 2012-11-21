@@ -13,6 +13,9 @@ else:
     tobyte = lambda b: bytes(b)
     asunicode = lambda s: s.decode("ascii")
 
+if sys.version_info < (2, 7):
+    memoryview = buffer
+
 
 class BaseSHA3Tests(unittest.TestCase):
     new = None
@@ -83,6 +86,20 @@ class BaseSHA3Tests(unittest.TestCase):
     def test_vectors(self):
         for hexmsg, hexdigest in self.vectors:
             self.assertHashDigest(hexmsg, hexdigest)
+
+    def test_vectors_unaligned(self):
+        for hexmsg, hexdigest in self.vectors:
+            hexdigest = hexdigest.lower()
+            msg = fromhex(hexmsg)
+            digest = fromhex(hexdigest)
+            for i in range(1, 15):
+                msg2 = i * b"\x00" + msg
+                unaligned = memoryview(msg2)[i:]
+                self.assertEqual(unaligned, msg)
+
+                sha3 = self.new(unaligned)
+                self.assertEqual(sha3.hexdigest(), hexdigest)
+                self.assertEqual(sha3.digest(), digest)
 
     def test_hmac(self):
         self.assertRaises(TypeError, hmac.new, b"", b"", self.new)
