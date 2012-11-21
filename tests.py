@@ -33,6 +33,29 @@ else:
     skipIf = unittest.skipIf
 
 
+def katparser(katfile):
+    """Trivial parser for KAT files
+    """
+    length = msg = md = None
+    with open(katfile) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            key, value = line.split(" = ")
+            if key == "Len":
+                length = int(value)
+            elif key == "Msg":
+                msg = value
+            elif key == "MD":
+                md = value
+                if length % 8 == 0:
+                    yield msg[:length], md
+                length = msg = md = None
+            else:
+                raise ValueError(key)
+
+
 class BaseSHA3Tests(unittest.TestCase):
     new = None
     name = None
@@ -123,6 +146,20 @@ class BaseSHA3Tests(unittest.TestCase):
                 self.assertEqual(unaligned, msg)
 
                 sha3 = self.new(unaligned)
+                self.assertEqual(sha3.hexdigest(), hexdigest)
+                self.assertEqual(sha3.digest(), digest)
+
+    def test_kat(self):
+        katname = os.path.join("kat", "*%i.txt" % (self.digest_size * 8))
+        kats = glob(katname)
+        self.assertEqual(len(kats), 2)
+        for kat in kats:
+            for hexmsg, hexdigest in katparser(kat):
+                hexdigest = hexdigest.lower()
+                msg = fromhex(hexmsg)
+                digest = fromhex(hexdigest)
+                self.assertEqual(len(digest), self.digest_size)
+                sha3 = self.new(msg)
                 self.assertEqual(sha3.hexdigest(), hexdigest)
                 self.assertEqual(sha3.digest(), digest)
 
