@@ -2,6 +2,7 @@ PYTHON=python
 SETUPFLAGS=
 COMPILEFLAGS=
 INSTALLFLAGS=
+PYTHONS=python2.6 python2.7 python3.2 python3.3 python3.4
 
 .PHONY: inplace all rebuild test_inplace test fulltests clean distclean
 .PHONY: sdist install
@@ -23,23 +24,30 @@ test_inplace: inplace
 test: test_inplace
 
 fulltest:
-	python2.6 setup.py $(SETUPFLAGS) test
-	python2.7 setup.py $(SETUPFLAGS) test
-	python3.2 setup.py $(SETUPFLAGS) test
-	python3.3 setup.py $(SETUPFLAGS) test
-	python3.4 setup.py $(SETUPFLAGS) test
+	$(MAKE) clean
+	@set -e; \
+	for python in $(PYTHONS); do \
+		echo "\n*** $$python without HMAC ***"; \
+		$$python $(SETUPFLAGS) setup.py -q test; \
+	done
+	$(MAKE) clean
+	@set -e; \
+	for python in $(PYTHONS); do \
+		echo "\n*** $$python with HMAC ***"; \
+		$$python $(SETUPFLAGS) setup.py -q build_ext -DSHA3_HMAC_SUPPORT test; \
+	done
+	$(MAKE) clean
 
 clean:
-	$(PYTHON) setup.py clean --all
-	find . \( -name '*.o' -or -name '*.so' -or -name '*.sl' -or \
-	          -name '*.py[cod]' \) -delete
-	rm -f README.html
+	@find . \( -name '*.o' -or -name '*.so' -or -name '*.sl' -or \
+	           -name '*.py[cod]' -or -name README.html \) \
+	    -and -type f -delete
 
 distclean: clean
-	rm -rf build
-	rm -rf dist
-	find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or
-	          -name 'core*' \) -delete
+	@rm -rf build
+	@rm -rf dist
+	@find . \( -name '~*' -or -name '*.orig' -or -name '*.bak' -or \
+	          -name 'core*' \) -and -type f  -delete
 
 sdist: README.html
 	$(PYTHON) setup.py sdist --formats gztar,zip

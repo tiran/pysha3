@@ -4,6 +4,7 @@
 
 __all__ = ("sha3_224", "sha3_256", "sha3_384", "sha3_512")
 from _sha3 import sha3_224, sha3_256, sha3_384, sha3_512
+from _sha3 import _keccakopt, _hmac_support
 
 # monkey patch _hashlib
 import hashlib as _hashlib
