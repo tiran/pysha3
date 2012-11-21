@@ -13,13 +13,10 @@ class TestCommand(Command):
     user_options = []
 
     def initialize_options(self):
-        pass
+        self.rootdir = os.getcwd()
 
     def finalize_options(self):
-        # hack inplace build into build_ext
-        options = self.distribution.command_options
-        extoptions = options.setdefault("build_ext", {})
-        extoptions["inplace"] = ("hack", True)
+        pass
 
     def remove_ext(self):
         """Remove extensions
@@ -27,19 +24,39 @@ class TestCommand(Command):
         All Python 2.x versions share the same library name. Remove the
         file to fix version mismatch errors.
         """
-        root = os.getcwd()
-        for fname in os.listdir(root):
+        for fname in os.listdir(self.rootdir):
             if fname.endswith(("so", "dylib", "pyd", "sl")):
                 os.unlink(os.path.join(root, fname))
 
+    def get_lib_dirs(self):
+        """Get version, platform and configuration dependend lib dirs
+
+        Distutils caches the build command object on the distribution object.
+        We can retrieve the object to retrieve the paths to the directories
+        inside the build directory.
+        """
+        build = self.distribution.command_obj["build"]
+        builddirs = set()
+        for attrname in 'build_platlib', 'build_lib', 'build_purelib':
+            builddir = getattr(build, attrname, None)
+            if not builddir:
+                continue
+            builddir = os.path.abspath(os.path.join(self.rootdir, builddir))
+            if not os.path.isdir(builddir):
+                continue
+            builddirs.add(builddir)
+        return builddirs
+
     def run(self):
-        if sys.version_info[0] < 3:
-            self.remove_ext()
-
-        # force a build with build_ext -i
+        # force a build with build_ext
         self.run_command("build")
-
-        errno = subprocess.check_call([sys.executable, "tests.py"])
+        # get lib dirs from build object
+        libdirs = self.get_lib_dirs()
+        # add lib dirs to Python's search path
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(libdirs)
+        # and finally run the test command
+        errno = subprocess.check_call([sys.executable, "tests.py"], env=env)
         raise SystemExit(errno)
 
 
@@ -59,10 +76,10 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="0.3",
+    version="0.4dev",
     ext_modules=exts,
     py_modules=["sha3"],
-    cmdclass = {"test": TestCommand},
+    cmdclass={"test": TestCommand},
     author="Christian Heimes",
     author_email="christian@python.org",
     maintainer="Christian Heimes",
@@ -95,7 +112,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
-        #"Programming Language :: Python :: 3.4",
+        # "Programming Language :: Python :: 3.4",
         "Topic :: Security :: Cryptography",
     ],
 )
