@@ -48,6 +48,7 @@ class TestCommand(Command):
         return builddirs
 
     def run(self):
+        self.remove_ext()
         # force a build with build_ext
         self.run_command("build")
         # get lib dirs from build object
