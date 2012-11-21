@@ -148,7 +148,9 @@
   #include "keccak/KeccakF-1600-opt32.c"
 #endif
 
- /* #define SHA3_BLOCKSIZE 200 // 1600 bits  */
+#ifndef SHA3_HMAC_SUPPORT
+#  define SHA3_HMAC_SUPPORT 0 /* experimental HMAC support */
+#endif
 #define SHA3_MAX_DIGESTSIZE 64 /* 512 bits */
 #define SHA3_state hashState
 #define SHA3_init Init
@@ -419,19 +421,34 @@ static PyMethodDef SHA3_methods[] = {
 static PyObject *
 SHA3_get_block_size(SHA3object *self, void *closure)
 {
+#if !SHA3_HMAC_SUPPORT
     /* HMAC-SHA3 hasn't been specified yet and no official test vectors are
      * available. Thus block_size returns NotImplemented to prevent people
      * from using SHA3 with the hmac module.
      */
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
-/*
-#if PY_MAJOR_VERSION >= 3
-    return PyLong_FromLong(SHA3_BLOCKSIZE);
 #else
-    return PyInt_FromLong(SHA3_BLOCKSIZE);
+    /* http://www.di-mgt.com.au/hmac_sha3_testvectors.html
+     * The rate is already available in spongeState->rate but spongeState
+     * isn't part of the public API. Too bad!
+     *
+     * invariants:
+     *   capacity = 2 * hashbitlen; (for sha3-224, 256, 384, 512)
+     *   rate + capacity = 1600
+     */
+    int rate;
+
+    assert(self->hashbitlen == 224 || self->hashbitlen == 256 ||
+           self->hashbitlen == 384 || self->hashbitlen == 512);
+    rate = 1600 - (2 * self->hashbitlen);
+
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_FromLong(rate / 8);
+#else
+    return PyInt_FromLong(rate / 8);
 #endif
-*/
+#endif
 }
 
 static PyObject *
@@ -664,6 +681,7 @@ init_sha3(void)
 #endif
 
     PyModule_AddIntConstant(m, "_keccakopt", KeccakOpt);
+    PyModule_AddIntConstant(m, "_hmac_support", SHA3_HMAC_SUPPORT);
 
 #if PY_MAJOR_VERSION >= 3
     return m;
