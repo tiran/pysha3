@@ -13,6 +13,8 @@ pysha3 0.4
   standardized yet and disabled unless the module is compiled with
   SHA3_HMAC_SUPPORT flag.
 
+- Test hashing of unaligned data.
+
 pysha3 0.3
 ----------
 
