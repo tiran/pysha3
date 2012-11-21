@@ -1,6 +1,18 @@
 Changelog
 =========
 
+pysha3 0.4
+----------
+
+*Release date: ??-???-2012*
+
+- Add KAT files for additional tests.
+
+- Add experimental HMAC support based on examples from
+  http://www.di-mgt.com.au/hmac_sha3_testvectors.html . HMAC-SHA-3 isn't
+  standardized yet and disabled unless the module is compiled with
+  SHA3_HMAC_SUPPORT flag.
+
 pysha3 0.3
 ----------
 
