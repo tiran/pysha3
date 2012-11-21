@@ -31,7 +31,7 @@ fulltest:
 
 clean:
 	$(PYTHON) setup.py clean --all
-	find . \( -name '*.o' -or -name '*.so' -or -name '*.sl' -or
+	find . \( -name '*.o' -or -name '*.so' -or -name '*.sl' -or \
 	          -name '*.py[cod]' \) -delete
 	rm -f README.html
 
