@@ -6,7 +6,7 @@ optimized reference implementation from http://keccak.noekeon.org/ . Only
 the optimizations for 32 and 64bit platforms are used. The optimized SSE and
 ARM assembly variants are ignored for now.
 
-The module is a standalone version of the SHA-3 implemention of Python 3.4
+The module is a standalone version of my SHA-3 module from Python 3.4
 (currently under development). The code in sha3module.c has been modified to
 be compatible with Python 2.6 to 3.4. Python 2.5 and earlier are not
 supported.
@@ -22,6 +22,7 @@ pysha3 has been successfully tested on several platforms and architectures:
  - FreeBSD 7.4 - 10 (GCC, clang) on X86 and X86_64
  - HP-UX (HP C/aC++) on IA64 (little endian) and PA-RISC (big endian)
  - Solaris 10 (Oracle Solaris Studio 12.3) on SPARC (big endian)
+ - Solaris 11 (Oracle Solaris Studio 12.3) on X86_64.
  - AIX (XLC 12.1) on PowerPC (big endian)
 
 Thank you very much to Trent Nelson for the Snakebite network.
