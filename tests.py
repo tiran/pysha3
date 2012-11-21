@@ -173,6 +173,7 @@ class BaseSHA3Tests(unittest.TestCase):
             key = fromhex(key)
             msg = fromhex(msg)
             mac = hmac.new(key, msg, self.new)
+            self.assertEqual(len(mac.digest()), self.digest_size)
             result = mac.hexdigest()
             self.assertEqual(result, expected,
                              "%s != %s for %r, %r" %
