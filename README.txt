@@ -1,3 +1,4 @@
+======
 pysha3
 ======
 
@@ -15,7 +16,8 @@ supported.
 Platforms
 =========
 
-pysha3 has been successfully tested on several platforms and architectures:
+pysha3 has been successfully tested on at least 8 CPU architectures, 7 compiler
+families and 10 operating systems families:
 
  - Linux (GCC 4.3 and 4.6, clang 3.0) on X86, X86_64 and ARMv6 (little endian)
  - Windows (VS 2008, VS 2010) on X86 and X86_64
@@ -29,6 +31,15 @@ pysha3 has been successfully tested on several platforms and architectures:
  - Tru64 (Compaq C) on Alpha (little endian)
 
 Thank you very much to Trent Nelson for http://www.snakebite.net/ .
+
+Donation for ARMv7 support
+--------------------------
+
+The Keccak reference implementation contains optimized assembly code for ARM.
+However neither Trent nor I have access to ARM platforms except for my 1st
+generation Raspberry Pi. We gladly accept hardware donations of ARM boards
+and periphery, either to the Snakebite network or to me personally. Please
+contact me if you like to help.
 
 
 Usage
