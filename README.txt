@@ -24,8 +24,9 @@ pysha3 has been successfully tested on several platforms and architectures:
  - Solaris 10 (Oracle Solaris Studio 12.3) on SPARC (big endian)
  - Solaris 11 (Oracle Solaris Studio 12.3) on X86_64.
  - AIX (XLC 12.1) on PowerPC (big endian)
+ - Tru64 (Compaq C) on Alpha (little endian)
 
-Thank you very much to Trent Nelson for the Snakebite network.
+Thank you very much to Trent Nelson for http://www.snakebite.org/ .
 
 
 Usage
