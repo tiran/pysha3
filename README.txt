@@ -26,7 +26,7 @@ pysha3 has been successfully tested on several platforms and architectures:
  - AIX (XLC 12.1) on PowerPC (big endian)
  - Tru64 (Compaq C) on Alpha (little endian)
 
-Thank you very much to Trent Nelson for http://www.snakebite.org/ .
+Thank you very much to Trent Nelson for http://www.snakebite.net/ .
 
 
 Usage
