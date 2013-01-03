@@ -340,7 +340,9 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
         c = (digest[i] & 0xf);
         hex_digest[j++] = Py_hexdigits[c];
     }
+#ifdef Py_DEBUG
     assert(_PyUnicode_CheckConsistency(retval, 1));
+#endif /* Py_DEBUG */
 #else
     for(i=j=0; i < digestlen; i++) {
         char c;
@@ -351,7 +353,7 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
         c = (c>9) ? c+'a'-10 : c + '0';
         hex_digest[j++] = c;
     }
-#endif
+#endif /* PY_VERSION_33 */
     return retval;
 }
 
