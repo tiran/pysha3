@@ -17,6 +17,7 @@
 
 #include "Python.h"
 #include "../hashlib.h"
+#include "../pymemsets.h"
 
 /* **************************************************************************
  *                             SHA-3 (Keccak)
@@ -157,7 +158,7 @@
 #define SHA3_process Update
 #define SHA3_done Final
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
-#define SHA3_clearstate(state) memset(&(state), 0, sizeof(SHA3_state))
+#define SHA3_clearstate(state) _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
 
 #if PY_VERSION_HEX > 0x03030000
 #  define PY_VERSION_33 1

@@ -62,11 +62,12 @@ class TestCommand(Command):
 
 
 exts = []
-sha3_depends = ["Modules/hashlib.h"]
+sha3_depends = ["Modules/hashlib.h", "Modules/pymemsets.h"]
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.c"))
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.h"))
 sha3_depends.extend(glob("Modules/_sha3/keccak/*.macros"))
-exts.append(Extension("_sha3", ["Modules/_sha3/sha3module.c"],
+exts.append(Extension("_sha3",
+                      ["Modules/_sha3/sha3module.c", "Modules/pymemsets.c"],
                       depends=sha3_depends))
 
 long_description = []
