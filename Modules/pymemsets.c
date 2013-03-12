@@ -10,7 +10,7 @@
  * body. The functions follows recommendation MSC06-C of the `CERT Secure
  * Coding Standards`.
  *
- * _Py_memset_s() comes WITHOUT warrenty and does NOT guarantee any security.
+ * _Py_memset_s() comes WITHOUT warranty and does NOT guarantee any security.
  * The page holding your data might already been swapped to disk or shared
  * with a forked child process. It's still better than no wiping ...
  *
@@ -23,7 +23,6 @@
  *   in (5.1.2.3). That is, any call to the memset_s function shall assume
  *   that the memory indicated by s and n may be accessible in the future
  *   and thus must contain the values indicated by c.
- *
  */
 errno_t
 _Py_memset_s(void *s, rsize_t smax, int c, rsize_t n)
