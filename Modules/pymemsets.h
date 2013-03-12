@@ -3,6 +3,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifndef errno_t
 typedef int errno_t;
