@@ -15,6 +15,12 @@ pysha3 0.4
 
 - Test hashing of unaligned data.
 
+- Add ISO C11 memset_s() function as _Py_memset_s() in order to securely
+  wipe memory that holds sensitive data. The page
+  https://www.securecoding.cert.org/confluence/display/seccode/MSC06-C.+Be+aware+of+compiler+optimization+when+dealing+with+sensitive+data
+  explains the motivation for memset_s().
+
+
 pysha3 0.3
 ----------
 
