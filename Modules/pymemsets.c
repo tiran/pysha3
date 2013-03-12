@@ -1,4 +1,18 @@
+#include <string.h>
+#include "pymemsets.h"
+
 /* ISO C11 memset_s() function
+ *
+ * The function implements the best effort to overwrite a memory location
+ * with data in order to wipe sensitive information. memset() isn't
+ * sufficient because compilers often optimize a call to memset() away, when
+ * the memory segment is not accessed anymore, e.g. at the end of a function
+ * body. The functions follows recommendation MSC06-C of the `CERT Secure
+ * Coding Standards`.
+ *
+ * _Py_memset_s() comes WITHOUT warrenty and does NOT guarantee any security.
+ * The page holding your data might already been swapped to disk or shared
+ * with a forked child process. It's still better than no wiping ...
  *
  * Section K.3.7.4.1, paragraph 4 [ISO/IEC 9899:2011] states:
  *
@@ -11,11 +25,6 @@
  *   and thus must contain the values indicated by c.
  *
  */
-
-#include <string.h>
-#include "pymemsets.h"
-
-
 errno_t
 _Py_memset_s(void *s, rsize_t smax, int c, rsize_t n)
 {
