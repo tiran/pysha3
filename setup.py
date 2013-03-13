@@ -26,7 +26,7 @@ class TestCommand(Command):
         """
         for fname in os.listdir(self.rootdir):
             if fname.endswith(("so", "dylib", "pyd", "sl")):
-                os.unlink(os.path.join(root, fname))
+                os.unlink(os.path.join(self.rootdir, fname))
 
     def get_lib_dirs(self):
         """Get version, platform and configuration dependend lib dirs
