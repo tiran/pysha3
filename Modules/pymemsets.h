@@ -1,5 +1,5 @@
-#ifndef _PY_MEMSET_S_H
-#define _PY_MEMSET_S_H 1
+#ifndef PY_MEMSET_S_H
+#define PY_MEMSET_S_H 1
 
 #include <errno.h>
 #include <stdint.h>
@@ -22,4 +22,4 @@ typedef size_t rsize_t;
 
 errno_t _Py_memset_s(void *, rsize_t, int, rsize_t);
 
-#endif /* _PY_MEMSET_S_H */
+#endif /* PY_MEMSET_S_H */
