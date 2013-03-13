@@ -3,7 +3,7 @@
 
 /* Windows doesn't provide EOVERFLOW. */
 #ifndef EOVERFLOW
-#define EOVERFLOW E2BIG
+#  define EOVERFLOW E2BIG
 #endif
 
 

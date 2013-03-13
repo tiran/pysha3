@@ -2,8 +2,10 @@
 #define PY_MEMSET_S_H 1
 
 #include <errno.h>
-#include <stdint.h>
 #include <string.h>
+#ifndef _MSC_VER
+#  include <stdint.h>
+#endif
 
 #ifndef errno_t
 typedef int errno_t;
