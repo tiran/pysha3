@@ -68,3 +68,28 @@ _Py_memset_s(void *s, rsize_t smax, int c, rsize_t n)
         return errval;
     }
 }
+
+/* I have seen other tricks to accomplish the same task faster with less CPU
+ * instructions.
+ *
+ * A patch for NetBSD creates a const volatile function
+ * pointer to memset() and calls memset() by dereferencing the volatile
+ * function pointer. I'm not sure if this works with all compilers.
+ *
+ *   static void * (* const volatile __memset_vp)(void *, int, size_t) = (memset);
+ *   (*__memset_vp)(s, c, n);
+ *
+ *   Source: http://ftp.netbsd.org/pub/NetBSD/misc/apb/memset_s.20120224.diff
+ *
+ * Another trick for GCC and LLVM is inline assembly to prevent dead code
+ * elimination:
+ *
+ *   memset(s, c, n);
+ *   asm volatile("" : : "r"(s) : "memory");
+ *        no code : no write : reads s : clobbers memory
+ *
+ *   Source: http://llvm.org/bugs/show_bug.cgi?id=15495
+ *
+ * Windows has SecureZeroMemory(void*, size_t).
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/aa366877%28v=vs.85%29.aspx
+ */
