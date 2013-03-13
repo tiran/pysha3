@@ -1,6 +1,12 @@
 #include <string.h>
 #include "pymemsets.h"
 
+/* Windows doesn't provide EOVERFLOW. */
+#ifndef EOVERFLOW
+#define EOVERFLOW E2BIG
+#endif
+
+
 /* ISO C11 memset_s() function
  *
  * The function implements the best effort to overwrite a memory location
@@ -62,6 +68,3 @@ _Py_memset_s(void *s, rsize_t smax, int c, rsize_t n)
         return errval;
     }
 }
-
-#undef USE_LOOP
-
