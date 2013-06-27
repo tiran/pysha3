@@ -22,6 +22,12 @@ pysha3 0.4
 
 - Add tox support
 
+- Add _capacity_bits and _rate_bits attributes for diagnostic purposes
+
+- Add SHA3_0 support and sha3_0.squeeze(lenght, hex=False) method for
+  arbitrary-length sponge squeezing. SHA3_0 uses a capacity of 1024 and a rate
+  of 576.
+
 
 pysha3 0.3
 ----------

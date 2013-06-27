@@ -152,18 +152,22 @@
 #ifndef SHA3_HMAC_SUPPORT
 #  define SHA3_HMAC_SUPPORT 0 /* experimental HMAC support */
 #endif
-#define SHA3_MAX_DIGESTSIZE 64 /* 512 bits */
+#define SHA3_MAX_DIGESTSIZE 512 /* 64 Bytes (512 Bits) for 224 to 512,
+                                 * 512 Bytes for sha3_0 */
 #define SHA3_state hashState
 #define SHA3_init Init
 #define SHA3_process Update
 #define SHA3_done Final
+#define SHA3_squeeze(state, output, outputLength) \
+    Squeeze(((spongeState*)(state)), (output), (outputLength))
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
-#define SHA3_clearstate(state) _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
+#define SHA3_clearstate(state) \
+    _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
 
 #if PY_VERSION_HEX > 0x03030000
-#  define PY_VERSION_33 1
+#  define PY_VERSION_33plus 1
 #else
-#  define PY_VERSION_33 0
+#  define PY_VERSION_33plus 0
 #endif
 
 /* The structure for storing SHA3 info */
@@ -171,6 +175,7 @@
 typedef struct {
     PyObject_HEAD
     int hashbitlen;
+    int digestlen;
     SHA3_state hash_state;
 #ifdef WITH_THREAD
     PyThread_type_lock lock;
@@ -185,31 +190,32 @@ static SHA3object *
 newSHA3object(int hashbitlen)
 {
     SHA3object *newobj;
+    newobj = (SHA3object *)PyObject_New(SHA3object, &SHA3type);
+    if (newobj == NULL) {
+        return NULL;
+    }
 
     /* check hashbitlen */
     switch(hashbitlen) {
         /* supported hash length */
         case 224:
-            break;
         case 256:
-            break;
         case 384:
-            break;
         case 512:
+            newobj->hashbitlen = hashbitlen;
+            newobj->digestlen = hashbitlen / 8;
             break;
         case 0:
-            /*  arbitrarily-long output isn't supported by this module */
+            /* arbitrarily-long output *IS* supported by this module */
+            newobj->hashbitlen = 0;
+            newobj->digestlen = 512;
+            break;
         default:
             /* everything else is an error */
             PyErr_SetString(PyExc_ValueError,
-                    "hashbitlen must be one of 224, 256, 384 or 512.");
+                    "hashbitlen must be one of 0, 224, 256, 384 or 512.");
             return NULL;
     }
-    newobj = (SHA3object *)PyObject_New(SHA3object, &SHA3type);
-    if (newobj == NULL) {
-        return NULL;
-    }
-    newobj->hashbitlen = hashbitlen;
 #ifdef WITH_THREAD
     newobj->lock = NULL;
 #endif
@@ -264,50 +270,40 @@ SHA3_digest(SHA3object *self, PyObject *unused)
     ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
     LEAVE_HASHLIB(self);
-    res = SHA3_done(&temp, digest);
+    if (self->hashbitlen) {
+        res = SHA3_done(&temp, digest);
+    } else {
+       res = SHA3_squeeze(&temp, digest, self->digestlen * 8);
+    }
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
     return PyBytes_FromStringAndSize((const char *)digest,
-                                      self->hashbitlen / 8);
+                                      self->digestlen);
 }
 
 
 PyDoc_STRVAR(SHA3_hexdigest__doc__,
 "Return the digest value as a string of hexadecimal digits.");
 
+
 static PyObject *
-SHA3_hexdigest(SHA3object *self, PyObject *unused)
+_SHA3_hexdigest(const unsigned char *digest, int digestlen)
 {
-    unsigned char digest[SHA3_MAX_DIGESTSIZE];
-    SHA3_state temp;
-    HashReturn res;
     PyObject *retval;
-#if PY_VERSION_33
+    int i, j;
+#if PY_VERSION_33plus
     Py_UCS1 *hex_digest;
 #elif PY_MAJOR_VERSION >= 3
     Py_UNICODE *hex_digest;
 #else
     char *hex_digest;
 #endif
-    int digestlen, i, j;
-
-    /* Get the raw (binary) digest value */
-    ENTER_HASHLIB(self);
-    SHA3_copystate(temp, self->hash_state);
-    LEAVE_HASHLIB(self);
-    res = SHA3_done(&temp, digest);
-    SHA3_clearstate(temp);
-    if (res != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
-        return NULL;
-    }
 
     /* Create a new string */
-    digestlen = self->hashbitlen / 8;
-#if PY_VERSION_33
+#if PY_VERSION_33plus
     retval = PyUnicode_New(digestlen * 2, 127);
     if (!retval)
             return NULL;
@@ -333,7 +329,7 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
 #endif
 
     /* Make hex version of the digest */
-#if PY_VERSION_33
+#if PY_VERSION_33plus
     for(i=j=0; i < digestlen; i++) {
         unsigned char c;
         c = (digest[i] >> 4) & 0xf;
@@ -354,9 +350,84 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
         c = (c>9) ? c+'a'-10 : c + '0';
         hex_digest[j++] = c;
     }
-#endif /* PY_VERSION_33 */
+#endif /* PY_VERSION_33plus */
     return retval;
 }
+
+static PyObject *
+SHA3_hexdigest(SHA3object *self, PyObject *unused)
+{
+    unsigned char digest[SHA3_MAX_DIGESTSIZE];
+    SHA3_state temp;
+    HashReturn res;
+
+    /* Get the raw (binary) digest value */
+    ENTER_HASHLIB(self);
+    SHA3_copystate(temp, self->hash_state);
+    LEAVE_HASHLIB(self);
+    if (self->hashbitlen) {
+        res = SHA3_done(&temp, digest);
+    } else {
+       res = SHA3_squeeze(&temp, digest, self->digestlen * 8);
+    }
+    SHA3_clearstate(temp);
+    if (res != SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
+        return NULL;
+    }
+    return _SHA3_hexdigest(digest, self->digestlen);
+}
+
+static PyObject *
+SHA3_squeeze_digest(SHA3object *self, PyObject *args, PyObject *kwds)
+{
+    char *kwlist[] = {"length", "hex", NULL};
+    unsigned char *digest;
+    SHA3_state temp;
+    int res;
+    unsigned long digestlen; /* unsigned long long */
+    PyObject *result;
+    PyObject *ohex = NULL;
+    int hex;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "k|O:squeeze", kwlist,
+                                     &digestlen, &ohex)) {
+        return NULL;
+    }
+    if (ohex == NULL) {
+        hex = 0;
+    } else {
+        if ((hex = PyObject_IsTrue(ohex)) == -1) {
+            return NULL;
+        }
+    }
+
+    if ((digest = (unsigned char*)PyMem_Malloc(digestlen)) == NULL) {
+        return PyErr_NoMemory();
+    }
+
+    /* Get the raw (binary) digest value */
+    ENTER_HASHLIB(self);
+    SHA3_copystate(temp, self->hash_state);
+    LEAVE_HASHLIB(self);
+    res = SHA3_squeeze(&temp, digest, digestlen * 8);
+    SHA3_clearstate(temp);
+    if (res != SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Squeeze()");
+        PyMem_Free(digest);
+        return NULL;
+    }
+    if (hex) {
+         result = _SHA3_hexdigest((const unsigned char *)digest,
+                                  digestlen);
+    } else {
+        result = PyBytes_FromStringAndSize((const char *)digest,
+                                           digestlen);
+    }
+    PyMem_Free(digest);
+    return result;
+}
+
 
 PyDoc_STRVAR(SHA3_update__doc__,
 "Update this hash object's state with the provided string.");
@@ -418,6 +489,8 @@ static PyMethodDef SHA3_methods[] = {
          SHA3_hexdigest__doc__},
     {"update",    (PyCFunction)SHA3_update,    METH_VARARGS,
          SHA3_update__doc__},
+    {"squeeze", (PyCFunction)SHA3_squeeze_digest,
+         METH_VARARGS | METH_KEYWORDS, NULL},
     {NULL,        NULL}         /* sentinel */
 };
 
@@ -441,6 +514,13 @@ SHA3_get_block_size(SHA3object *self, void *closure)
      *   rate + capacity = 1600
      */
     int rate;
+
+    if (self->hashbitlen == 0) {
+        PyErr_SetString(PyExc_TypeError,
+                        "block_size not supported with arbitrarily-long "
+                        "output");
+        return NULL;
+    }
 
     assert(self->hashbitlen == 224 || self->hashbitlen == 256 ||
            self->hashbitlen == 384 || self->hashbitlen == 512);
@@ -468,17 +548,40 @@ static PyObject *
 SHA3_get_digest_size(SHA3object *self, void *closure)
 {
 #if PY_MAJOR_VERSION >= 3
-    return PyLong_FromLong(self->hashbitlen / 8);
+    return PyLong_FromLong(self->digestlen);
 #else
-    return PyInt_FromLong(self->hashbitlen / 8);
+    return PyInt_FromLong(self->digestlen);
 #endif
 }
 
+static PyObject *
+SHA3_get_capacity_bits(SHA3object *self, void *closure)
+{
+    unsigned int capacity = ((spongeState)self->hash_state).capacity;
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_FromLong(capacity);
+#else
+    return PyInt_FromLong(capacity);
+#endif
+}
+
+static PyObject *
+SHA3_get_rate_bits(SHA3object *self, void *closure)
+{
+    unsigned int rate = ((spongeState)self->hash_state).rate;
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_FromLong(rate);
+#else
+    return PyInt_FromLong(rate);
+#endif
+}
 
 static PyGetSetDef SHA3_getseters[] = {
     {"block_size", (getter)SHA3_get_block_size, NULL, NULL, NULL},
     {"name", (getter)SHA3_get_name, NULL, NULL, NULL},
     {"digest_size", (getter)SHA3_get_digest_size, NULL, NULL, NULL},
+    {"_capacity_bits", (getter)SHA3_get_capacity_bits, NULL, NULL, NULL},
+    {"_rate_bits", (getter)SHA3_get_rate_bits, NULL, NULL, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -628,6 +731,16 @@ sha3_512(PyObject *self, PyObject *args, PyObject *kwdict)
     return SHA3_factory(args, kwdict, "|O:sha3_512", 512);
 }
 
+PyDoc_STRVAR(sha3_0__doc__,
+"sha3_0([string]) -> SHA3 object\n\
+\n\
+Return a new SHA3 hash object with arbitrary-long output.");
+
+static PyObject *
+sha3_0(PyObject *self, PyObject *args, PyObject *kwdict)
+{
+    return SHA3_factory(args, kwdict, "|O:sha3_0", 0);
+}
 
 /* List of functions exported by this module */
 static struct PyMethodDef SHA3_functions[] = {
@@ -639,6 +752,8 @@ static struct PyMethodDef SHA3_functions[] = {
          sha3_384__doc__},
     {"sha3_512", (PyCFunction)sha3_512, METH_VARARGS|METH_KEYWORDS,
          sha3_512__doc__},
+    {"sha3_0", (PyCFunction)sha3_0, METH_VARARGS|METH_KEYWORDS,
+         sha3_0__doc__},
     {NULL,      NULL}            /* Sentinel */
 };
 
