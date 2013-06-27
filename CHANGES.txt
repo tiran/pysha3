@@ -20,6 +20,8 @@ pysha3 0.4
   https://www.securecoding.cert.org/confluence/display/seccode/MSC06-C.+Be+aware+of+compiler+optimization+when+dealing+with+sensitive+data
   explains the motivation for memset_s().
 
+- Add tox support
+
 
 pysha3 0.3
 ----------
