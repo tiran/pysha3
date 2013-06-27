@@ -2,8 +2,8 @@
 #  Licensed to PSF under a Contributor Agreement.
 #
 
-__all__ = ("sha3_224", "sha3_256", "sha3_384", "sha3_512")
-from _sha3 import sha3_224, sha3_256, sha3_384, sha3_512
+__all__ = ("sha3_224", "sha3_256", "sha3_384", "sha3_512", "sha3_0")
+from _sha3 import sha3_224, sha3_256, sha3_384, sha3_512, sha3_0
 from _sha3 import _keccakopt, _hmac_support
 
 # monkey patch _hashlib

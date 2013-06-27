@@ -36,7 +36,7 @@ else:
 def katparser(katfile):
     """Trivial parser for KAT files
     """
-    length = msg = md = None
+    length = msg = md = sq = None
     with open(katfile) as f:
         for line in f:
             line = line.strip()
@@ -52,6 +52,11 @@ def katparser(katfile):
                 if length % 8 == 0:
                     yield msg[:length], md
                 length = msg = md = None
+            elif key == "Squeezed":
+                sq = value
+                if length % 8 == 0:
+                    yield msg[:length], sq
+                length = msg = sq = None
             else:
                 raise ValueError(key)
 
@@ -61,6 +66,8 @@ class BaseSHA3Tests(unittest.TestCase):
     name = None
     digest_size = None
     block_size = None
+    rate_bits = None
+    capacity_bits = None
 
     vectors = []
     hmac_vectors = [
@@ -94,8 +101,14 @@ class BaseSHA3Tests(unittest.TestCase):
         sha3 = self.new()
         self.assertEqual(sha3.name, self.name)
         self.assertEqual(sha3.digest_size, self.digest_size)
+        self.assertEqual(sha3._capacity_bits + sha3._rate_bits, 1600)
+        self.assertEqual(sha3._rate_bits, self.rate_bits)
+        self.assertEqual(sha3._capacity_bits, self.capacity_bits)
         if HMAC_SUPPORT:
-            self.assertEqual(sha3.block_size, self.block_size)
+            if self.block_size is not None:
+                self.assertEqual(sha3.block_size, self.block_size)
+            else:
+                self.assertRaises(TypeError, getattr, sha3, "block_size")
         else:
             self.assertEqual(sha3.block_size, NotImplemented)
         self.assertEqual(len(sha3.digest()), self.digest_size)
@@ -150,7 +163,8 @@ class BaseSHA3Tests(unittest.TestCase):
                 self.assertEqual(sha3.digest(), digest)
 
     def test_kat(self):
-        katname = os.path.join("kat", "*%i.txt" % (self.digest_size * 8))
+        name = self.name.split("_")[1]
+        katname = os.path.join("kat", "*%s.txt" % name)
         kats = glob(katname)
         self.assertEqual(len(kats), 2)
         for kat in kats:
@@ -185,6 +199,8 @@ class SHA3_224Tests(BaseSHA3Tests):
     name = "sha3_224"
     digest_size = 28
     block_size = 144
+    rate_bits = 1152
+    capacity_bits = 448
     vectors = [
         ("", "F71837502BA8E10837BDD8D365ADB85591895602FC552B48B7390ABD"),
         ("CC", "A9CAB59EB40A10B246290F2D6086E32E3689FAF1D26B470C899F2802"),
@@ -203,6 +219,8 @@ class SHA3_256Tests(BaseSHA3Tests):
     name = "sha3_256"
     digest_size = 32
     block_size = 136
+    rate_bits = 1088
+    capacity_bits = 512
     vectors = [
         ("", "C5D2460186F7233C927E7DB2DCC703C0E500B653CA82273B7BFAD8045D85A470"),
         ("CC", "EEAD6DBFC7340A56CAEDC044696A168870549A6A7F6F56961E84A54BD9970B8A"),
@@ -221,6 +239,8 @@ class SHA3_384Tests(BaseSHA3Tests):
     name = "sha3_384"
     digest_size = 48
     block_size = 104
+    rate_bits = 832
+    capacity_bits = 768
     vectors = [
         ("", "2C23146A63A29ACF99E73B88F8C24EAA7DC60AA771780CCC006AFBFA8FE2479B2DD2B21362337441AC12B515911957FF"),
         ("CC", "1B84E62A46E5A201861754AF5DC95C4A1A69CAF4A796AE405680161E29572641F5FA1E8641D7958336EE7B11C58F73E9"),
@@ -239,6 +259,8 @@ class SHA3_512Tests(BaseSHA3Tests):
     name = "sha3_512"
     digest_size = 64
     block_size = 72
+    rate_bits = 576
+    capacity_bits = 1024
     vectors = [
         ("", "0EAB42DE4C3CEB9235FC91ACFFE746B29C29A8C366B7C60E4E67C466F36A4304C00FA9CAF9D87976BA469BCBE06713B435F091EF2769FB160CDAB33D3670680E"),
         ("CC", "8630C13CBD066EA74BBE7FE468FEC1DEE10EDC1254FB4C1B7C5FD69B646E44160B8CE01D05A0908CA790DFB080F4B513BC3B6225ECE7A810371441A5AC666EB9"),
@@ -251,10 +273,41 @@ class SHA3_512Tests(BaseSHA3Tests):
         "6adc502f14e27812402fc81a807b28bf8a53c87bea7a1df6256bf66f5de1a4cb741407ad15ab8abc136846057f881969fbb159c321c904bfb557b77afb7778c8",
         ]
 
+class SHA3_0Tests(BaseSHA3Tests):
+    new = sha3.sha3_0
+    name = "sha3_0"
+    digest_size = 512
+    block_size = None
+    rate_bits = 1024
+    capacity_bits = 576
+
+    vectors = [
+        ("",
+         "6753E3380C09E385D0339EB6B050A68F66CFD60A73476E6FD6ADEB72F5EDD7C6F04A5D017A19CBE291935855B4860F69DF04C98AA78B407A9BA9826F7266EF14BA6D3F90C4FE154D27C2858EA6DB8C117411A1BC5C499410C391B298F37BF636B0F5C31DBD6487A7D3D8CF2A97B619697E66D894299B8B4D80E0498538E18544C3A2FA33F0BFB1CFEF8DA7875C4967F332C7FC93C050E81FB404F9A91503D6010EE16F50B4ED0BC563BA8431668B003D7E2E6F226CB7FA93BB2E132C861FDC2141457589A63ECF05481126A7C2DE941A2FDEC71CB70DE81887B9014223865E79C4FFE82DAE83C1FC484B9A07A7E52B135F4AE3A0E09247EA4E2625E9349B0AC73F24CB418DF6DCB49CA37860298ADA18AA23595B5096EF789DE3EDF3826817FFF4F71102A01E1D2599F2958D5C186F5B11F5FEEDB61BB732DBB42D18B1E77258A8F211BF95C9F47F19603EC419FF879AEA41A4811344D016BBC4F9496741C469CCA425C5BE73543219AF40796C0B9FF14AEAA70C5E22E4BB1346A3DDFEDD8A559104E4704F1227D42918AE3F7404FBF3C6340A486E776AABCC34190F87DA4BD954B83386255A0E34DF05CA2E781FAF6FE66475852481FCE20798A56629ABFAC408760CE64606008A3B568C88ABA1C6DF3381E0765567EA84B2CE4B441CF1EEFAA32125D5139361A632B3008566A2E8AF1055CB06AE462B6BF87B34A9770618E6"),
+        ]
+
+    def test_hashlib(self):
+        pass
+
+    def test_squeeze(self):
+        for hexmsg, hexdigest in self.vectors:
+            hexdigest = hexdigest.lower()
+            msg = fromhex(hexmsg)
+            digest = fromhex(hexdigest)
+            sha3 = self.new(msg)
+            #self.assertEqual(sha3.hexdigest(), hexdigest)
+            self.assertEqual(sha3.squeeze(len(digest)), digest)
+            self.assertEqual(sha3.squeeze(len(digest), hex=True), hexdigest)
+            self.assertEqual(sha3.squeeze(1), digest[:1])
+            self.assertEqual(sha3.squeeze(10), digest[:10])
+            self.assertEqual(sha3.squeeze(128), digest[:128])
+            self.assertEqual(sha3.squeeze(256), digest[:256])
+            self.assertEqual(len(sha3.squeeze(2048)), 2048)
 
 def test_main():
     suite = unittest.TestSuite()
-    classes = [SHA3_224Tests, SHA3_256Tests, SHA3_384Tests, SHA3_512Tests]
+    classes = [SHA3_224Tests, SHA3_256Tests, SHA3_384Tests, SHA3_512Tests,
+               SHA3_0Tests]
     for cls in classes:
         suite.addTests(unittest.makeSuite(cls))
     return suite
