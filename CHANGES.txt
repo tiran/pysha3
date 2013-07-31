@@ -6,6 +6,8 @@ pysha3 0.4
 
 *Release date: ??-???-2012*
 
+- Fix typo that disabled threading optimization.
+
 - Add KAT files for additional tests.
 
 - Add experimental HMAC support based on examples from
