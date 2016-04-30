@@ -10,99 +10,29 @@
  *  Trevor Perrin (trevp@trevp.net)
  *  Gregory P. Smith (greg@krypto.org)
  *
- *  Copyright (C) 2012   Christian Heimes (christian@python.org)
- *  Licensed to PSF under a Contributor Agreement.
+ * Copyright (C) 2012-2016  Christian Heimes (christian@python.org)
+ * Licensed to PSF under a Contributor Agreement.
  *
  */
 
 #include "Python.h"
+#include "pystrhex.h"
 #include "../hashlib.h"
 #include "../pymemsets.h"
 
 /* **************************************************************************
- *                             SHA-3 (Keccak)
+ *                          SHA-3 (Keccak) and SHAKE
  *
- * The code is based on KeccakReferenceAndOptimized-3.2.zip from 29 May 2012.
+ * The code is based on KeccakCodePackage from 2016-04-23
+ * commit 647f93079afc4ada3d23737477a6e52511ca41fd
  *
  * The reference implementation is altered in this points:
  *  - C++ comments are converted to ANSI C comments.
- *  - All functions and globals are declared static.
- *  - The typedef for UINT64 is commented out.
- *  - KeccakF-1600-opt[32|64]-settings.h are commented out
- *  - Some unused functions are commented out to silence compiler warnings.
- *
- * In order to avoid name clashes with other software I have to declare all
- * Keccak functions and global data as static. The C code is directly
- * included into this file in order to access the static functions.
- *
- * Keccak can be tuned with several paramenters. I try to explain all options
- * as far as I understand them. The reference implementation also contains
- * assembler code for ARM platforms (NEON instructions).
- *
- * Common
- * ======
- *
- * Options:
- *   UseBebigokimisa, Unrolling
- *
- * - Unrolling: loop unrolling (24, 12, 8, 6, 4, 3, 2, 1)
- * - UseBebigokimisa: lane complementing
- *
- * 64bit platforms
- * ===============
- *
- * Additional options:
- *   UseSSE, UseOnlySIMD64, UseMMX, UseXOP, UseSHLD
- *
- * Optimized instructions (disabled by default):
- *   - UseSSE: use Stream SIMD extensions
- *     o UseOnlySIMD64: limit to 64bit instructions, otherwise 128bit
- *     o w/o UseOnlySIMD64: requires compiler agument -mssse3 or -mtune
- *   - UseMMX: use 64bit MMX instructions
- *   - UseXOP: use AMD's eXtended Operations (128bit SSE extension)
- *
- * Other:
- *   - Unrolling: default 24
- *   - UseBebigokimisa: default 1
- *
- * When neither UseSSE, UseMMX nor UseXOP is configured, ROL64 (rotate left
- * 64) is implemented as:
- *   - Windows: _rotl64()
- *   - UseSHLD: use shld (shift left) asm optimization
- *   - otherwise: shift and xor
- *
- * UseBebigokimisa can't be used in combination with UseSSE, UseMMX or
- * UseXOP. UseOnlySIMD64 has no effect unless UseSSE is specified.
- *
- * Tests have shown that UseSSE + UseOnlySIMD64 is about three to four
- * times SLOWER than UseBebigokimisa. UseSSE and UseMMX are about two times
- * slower. (tested by CH and AP)
- *
- * 32bit platforms
- * ===============
- *
- * Additional options:
- *   UseInterleaveTables, UseSchedule
- *
- *   - Unrolling: default 2
- *   - UseBebigokimisa: default n/a
- *   - UseSchedule: ???, (1, 2, 3; default 3)
- *   - UseInterleaveTables: use two 64k lookup tables for (de)interleaving
- *     default: n/a
- *
- * schedules:
- *   - 3: no UseBebigokimisa, Unrolling must be 2
- *   - 2 + 1: ???
+ *  - all function names are mangled
+ *  - typedef for UINT64 is commented out.
+ *  - brg_endian.h is removed
  *
  * *************************************************************************/
-
-/* from Include/pyport.h for Python < 2.7 */
-#if (defined UINT64_MAX || defined uint64_t)
-#ifndef PY_UINT64_T
-#define HAVE_UINT64_T 1
-#define PY_UINT64_T uint64_t
-#endif
-#endif
 
 #ifdef __sparc
   /* opt64 uses un-aligned memory access that causes a BUS error with msg
@@ -118,108 +48,216 @@
 
 #if KeccakOpt == 64 && defined(PY_UINT64_T)
   /* 64bit platforms with unsigned int64 */
-  #define Unrolling 24
-  #define UseBebigokimisa
   typedef PY_UINT64_T UINT64;
-#elif KeccakOpt == 32 && defined(PY_UINT64_T)
-  /* 32bit platforms with unsigned int64 */
-  #define Unrolling 2
-  #define UseSchedule 3
-  typedef PY_UINT64_T UINT64;
-#else
-  /* 32 or 64bit platforms without unsigned int64 */
-  #define Unrolling 2
-  #define UseSchedule 3
-  #define UseInterleaveTables
+  typedef unsigned char UINT8;
 #endif
 
-/* replacement for brg_endian.h
-#define IS_BIG_ENDIAN BIG_ENDIAN
-#define IS_LITTLE_ENDIAN LITTLE_ENDIAN
-#define PLATFORM_BYTE_ORDER BYTE_ORDER
-*/
+/* replacement for brg_endian.h */
+#define IS_LITTLE_ENDIAN 1234
+#define IS_BIG_ENDIAN 4321
+#if PY_LITTLE_ENDIAN
+#define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN
+#endif
+#if PY_BIG_ENDIAN
+#define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN
+#endif
+
+/* mangle names */
+#define KeccakF1600_FastLoop_Absorb _PySHA3_KeccakF1600_FastLoop_Absorb
+#define Keccak_HashFinal _PySHA3_Keccak_HashFinal
+#define Keccak_HashInitialize _PySHA3_Keccak_HashInitialize
+#define Keccak_HashSqueeze _PySHA3_Keccak_HashSqueeze
+#define Keccak_HashUpdate _PySHA3_Keccak_HashUpdate
+#define KeccakP1600_AddBytes _PySHA3_KeccakP1600_AddBytes
+#define KeccakP1600_AddBytesInLane _PySHA3_KeccakP1600_AddBytesInLane
+#define KeccakP1600_AddLanes _PySHA3_KeccakP1600_AddLanes
+#define KeccakP1600_ExtractAndAddBytes _PySHA3_KeccakP1600_ExtractAndAddBytes
+#define KeccakP1600_ExtractAndAddBytesInLane _PySHA3_KeccakP1600_ExtractAndAddBytesInLane
+#define KeccakP1600_ExtractAndAddLanes _PySHA3_KeccakP1600_ExtractAndAddLanes
+#define KeccakP1600_ExtractBytes _PySHA3_KeccakP1600_ExtractBytes
+#define KeccakP1600_ExtractBytesInLane _PySHA3_KeccakP1600_ExtractBytesInLane
+#define KeccakP1600_ExtractLanes _PySHA3_KeccakP1600_ExtractLanes
+#define KeccakP1600_Initialize _PySHA3_KeccakP1600_Initialize
+#define KeccakP1600_OverwriteBytes _PySHA3_KeccakP1600_OverwriteBytes
+#define KeccakP1600_OverwriteBytesInLane _PySHA3_KeccakP1600_OverwriteBytesInLane
+#define KeccakP1600_OverwriteLanes _PySHA3_KeccakP1600_OverwriteLanes
+#define KeccakP1600_OverwriteWithZeroes _PySHA3_KeccakP1600_OverwriteWithZeroes
+#define KeccakP1600_Permute_12rounds _PySHA3_KeccakP1600_Permute_12rounds
+#define KeccakP1600_Permute_24rounds _PySHA3_KeccakP1600_Permute_24rounds
+#define KeccakWidth1600_Sponge _PySHA3_KeccakWidth1600_Sponge
+#define KeccakWidth1600_SpongeAbsorb _PySHA3_KeccakWidth1600_SpongeAbsorb
+#define KeccakWidth1600_SpongeAbsorbLastFewBits _PySHA3_KeccakWidth1600_SpongeAbsorbLastFewBits
+#define KeccakWidth1600_SpongeInitialize _PySHA3_KeccakWidth1600_SpongeInitialize
+#define KeccakWidth1600_SpongeSqueeze _PySHA3_KeccakWidth1600_SpongeSqueeze
+#if KeccakOpt == 32
+#define KeccakP1600_AddByte _PySHA3_KeccakP1600_AddByte
+#define KeccakP1600_Permute_Nrounds _PySHA3_KeccakP1600_Permute_Nrounds
+#define KeccakP1600_SetBytesInLaneToZero _PySHA3_KeccakP1600_SetBytesInLaneToZero
+#endif
+
+/* we are only interested in KeccakP1600 */
+#define KeccakP200_excluded 1
+#define KeccakP400_excluded 1
+#define KeccakP800_excluded 1
 
 /* inline all Keccak dependencies */
-#include "keccak/KeccakNISTInterface.h"
-#include "keccak/KeccakNISTInterface.c"
-#include "keccak/KeccakSponge.c"
+#include "kcp/KeccakHash.h"
+#include "kcp/KeccakSponge.h"
+#include "kcp/KeccakHash.c"
+#include "kcp/KeccakSponge.c"
 #if KeccakOpt == 64
-  #include "keccak/KeccakF-1600-opt64.c"
+  #include "kcp/KeccakP-1600-opt64.c"
 #elif KeccakOpt == 32
-  #include "keccak/KeccakF-1600-opt32.c"
+  #include "kcp/KeccakP-1600-inplace32BI.c"
 #endif
 
-#ifndef SHA3_HMAC_SUPPORT
-#  define SHA3_HMAC_SUPPORT 0 /* experimental HMAC support */
-#endif
-#define SHA3_MAX_DIGESTSIZE 512 /* 64 Bytes (512 Bits) for 224 to 512,
-                                 * 512 Bytes for sha3_0 */
-#define SHA3_state hashState
-#define SHA3_init Init
-#define SHA3_process Update
-#define SHA3_done Final
-#define SHA3_squeeze(state, output, outputLength) \
-    Squeeze(((spongeState*)(state)), (output), (outputLength))
+#define SHA3_MAX_DIGESTSIZE 64 /* 64 Bytes (512 Bits) for 224 to 512 */
+#define SHA3_state Keccak_HashInstance
+#define SHA3_init Keccak_HashInitialize
+#define SHA3_process Keccak_HashUpdate
+#define SHA3_done Keccak_HashFinal
+#define SHA3_squeeze Keccak_HashSqueeze
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
 #define SHA3_clearstate(state) \
     _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
 
-#if PY_VERSION_HEX > 0x03030000
-#  define PY_VERSION_33plus 1
-#else
-#  define PY_VERSION_33plus 0
-#endif
+
+/*[clinic input]
+module _sha3
+class _sha3.sha3_224 "SHA3object *" "&SHA3_224typ"
+class _sha3.sha3_256 "SHA3object *" "&SHA3_256typ"
+class _sha3.sha3_384 "SHA3object *" "&SHA3_384typ"
+class _sha3.sha3_512 "SHA3object *" "&SHA3_512typ"
+class _sha3.shake_128 "SHA3object *" "&SHAKE128type"
+class _sha3.shake_256 "SHA3object *" "&SHAKE256type"
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=b8a53680f370285a]*/
 
 /* The structure for storing SHA3 info */
 
+#define PY_WITH_KECCAK 1
+
 typedef struct {
     PyObject_HEAD
-    int hashbitlen;
-    int digestlen;
     SHA3_state hash_state;
 #ifdef WITH_THREAD
     PyThread_type_lock lock;
 #endif
-
 } SHA3object;
 
-static PyTypeObject SHA3type;
+static PyTypeObject SHA3_224type;
+static PyTypeObject SHA3_256type;
+static PyTypeObject SHA3_384type;
+static PyTypeObject SHA3_512type;
+#ifdef PY_WITH_KECCAK
+static PyTypeObject Keccak_224type;
+static PyTypeObject Keccak_256type;
+static PyTypeObject Keccak_384type;
+static PyTypeObject Keccak_512type;
+#endif
+static PyTypeObject SHAKE128type;
+static PyTypeObject SHAKE256type;
 
+#include "clinic/sha3module.c.h"
 
 static SHA3object *
-newSHA3object(int hashbitlen)
+newSHA3object(PyTypeObject *type)
 {
     SHA3object *newobj;
-    newobj = (SHA3object *)PyObject_New(SHA3object, &SHA3type);
+    newobj = (SHA3object *)PyObject_New(SHA3object, type);
     if (newobj == NULL) {
         return NULL;
-    }
-
-    /* check hashbitlen */
-    switch(hashbitlen) {
-        /* supported hash length */
-        case 224:
-        case 256:
-        case 384:
-        case 512:
-            newobj->hashbitlen = hashbitlen;
-            newobj->digestlen = hashbitlen / 8;
-            break;
-        case 0:
-            /* arbitrarily-long output *IS* supported by this module */
-            newobj->hashbitlen = 0;
-            newobj->digestlen = 512;
-            break;
-        default:
-            /* everything else is an error */
-            PyErr_SetString(PyExc_ValueError,
-                    "hashbitlen must be one of 0, 224, 256, 384 or 512.");
-            return NULL;
     }
 #ifdef WITH_THREAD
     newobj->lock = NULL;
 #endif
     return newobj;
+}
+
+
+/*[clinic input]
+@classmethod
+_sha3.sha3_224.__new__ as py_sha3_new
+    string as data: object = NULL
+
+Return a new SHA3 hash object with a hashbit length of 28 bytes.
+[clinic start generated code]*/
+
+static PyObject *
+py_sha3_new_impl(PyTypeObject *type, PyObject *data)
+/*[clinic end generated code: output=8d5c34279e69bf09 input=d7c582b950a858b6]*/
+{
+    SHA3object *self = NULL;
+    Py_buffer buf = {NULL, NULL};
+    HashReturn res;
+
+    self = newSHA3object(type);
+    if (self == NULL) {
+        goto error;
+    }
+
+    if (type == &SHA3_224type) {
+        res = Keccak_HashInitialize_SHA3_224(&self->hash_state);
+    } else if (type == &SHA3_256type) {
+        res = Keccak_HashInitialize_SHA3_256(&self->hash_state);
+    } else if (type == &SHA3_384type) {
+        res = Keccak_HashInitialize_SHA3_384(&self->hash_state);
+    } else if (type == &SHA3_512type) {
+        res = Keccak_HashInitialize_SHA3_512(&self->hash_state);
+#ifdef PY_WITH_KECCAK
+    } else if (type == &Keccak_224type) {
+        res = Keccak_HashInitialize(&self->hash_state, 1152, 448, 224, 0x01);
+    } else if (type == &Keccak_256type) {
+        res = Keccak_HashInitialize(&self->hash_state, 1088, 512, 256, 0x01);
+    } else if (type == &Keccak_384type) {
+        res = Keccak_HashInitialize(&self->hash_state, 832, 768, 384, 0x01);
+    } else if (type == &Keccak_512type) {
+        res = Keccak_HashInitialize(&self->hash_state, 576, 1024, 512, 0x01);
+#endif
+    } else if (type == &SHAKE128type) {
+        res = Keccak_HashInitialize_SHAKE128(&self->hash_state);
+    } else if (type == &SHAKE256type) {
+        res = Keccak_HashInitialize_SHAKE256(&self->hash_state);
+    } else {
+        PyErr_BadInternalCall();
+        goto error;
+    }
+
+    if (data) {
+        GET_BUFFER_VIEW_OR_ERROR(data, &buf, goto error);
+#ifdef WITH_THREAD
+        if (buf.len >= HASHLIB_GIL_MINSIZE) {
+            /* invariant: New objects can't be accessed by other code yet,
+             * thus it's safe to release the GIL without locking the object.
+             */
+            Py_BEGIN_ALLOW_THREADS
+            res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+            Py_END_ALLOW_THREADS
+        }
+        else {
+            res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+        }
+#else
+        res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
+#endif
+        if (res != SUCCESS) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "internal error in SHA3 Update()");
+            goto error;
+        }
+        PyBuffer_Release(&buf);
+    }
+
+    return (PyObject *)self;
+
+  error:
+    if (self) {
+        Py_DECREF(self);
+    }
+    if (data && buf.obj) {
+        PyBuffer_Release(&buf);
+    }
+    return NULL;
 }
 
 
@@ -240,14 +278,20 @@ SHA3_dealloc(SHA3object *self)
 
 /* External methods for a hash object */
 
-PyDoc_STRVAR(SHA3_copy__doc__, "Return a copy of the hash object.");
+
+/*[clinic input]
+_sha3.sha3_224.copy
+
+Return a copy of the hash object.
+[clinic start generated code]*/
 
 static PyObject *
-SHA3_copy(SHA3object *self, PyObject *unused)
+_sha3_sha3_224_copy_impl(SHA3object *self)
+/*[clinic end generated code: output=6c537411ecdcda4c input=93a44aaebea51ba8]*/
 {
     SHA3object *newobj;
 
-    if ((newobj = newSHA3object(self->hashbitlen)) == NULL) {
+    if ((newobj = newSHA3object(Py_TYPE(self))) == NULL) {
         return NULL;
     }
     ENTER_HASHLIB(self);
@@ -257,11 +301,15 @@ SHA3_copy(SHA3object *self, PyObject *unused)
 }
 
 
-PyDoc_STRVAR(SHA3_digest__doc__,
-"Return the digest value as a string of binary data.");
+/*[clinic input]
+_sha3.sha3_224.digest
+
+Return the digest value as a string of binary data.
+[clinic start generated code]*/
 
 static PyObject *
-SHA3_digest(SHA3object *self, PyObject *unused)
+_sha3_sha3_224_digest_impl(SHA3object *self)
+/*[clinic end generated code: output=fd531842e20b2d5b input=a5807917d219b30e]*/
 {
     unsigned char digest[SHA3_MAX_DIGESTSIZE];
     SHA3_state temp;
@@ -270,92 +318,26 @@ SHA3_digest(SHA3object *self, PyObject *unused)
     ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
     LEAVE_HASHLIB(self);
-    if (self->hashbitlen) {
-        res = SHA3_done(&temp, digest);
-    } else {
-       res = SHA3_squeeze(&temp, digest, self->digestlen * 8);
-    }
+    res = SHA3_done(&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
     return PyBytes_FromStringAndSize((const char *)digest,
-                                      self->digestlen);
+                                      self->hash_state.fixedOutputLength / 8);
 }
 
 
-PyDoc_STRVAR(SHA3_hexdigest__doc__,
-"Return the digest value as a string of hexadecimal digits.");
+/*[clinic input]
+_sha3.sha3_224.hexdigest
 
-
-static PyObject *
-_SHA3_hexdigest(const unsigned char *digest, int digestlen)
-{
-    PyObject *retval;
-    int i, j;
-#if PY_VERSION_33plus
-    Py_UCS1 *hex_digest;
-#elif PY_MAJOR_VERSION >= 3
-    Py_UNICODE *hex_digest;
-#else
-    char *hex_digest;
-#endif
-
-    /* Create a new string */
-#if PY_VERSION_33plus
-    retval = PyUnicode_New(digestlen * 2, 127);
-    if (!retval)
-            return NULL;
-    hex_digest = PyUnicode_1BYTE_DATA(retval);
-#elif PY_MAJOR_VERSION >= 3
-    retval = PyUnicode_FromStringAndSize(NULL, digestlen * 2);
-    if (!retval)
-            return NULL;
-    hex_digest = PyUnicode_AS_UNICODE(retval);
-    if (!hex_digest) {
-            Py_DECREF(retval);
-            return NULL;
-    }
-#else
-    retval = PyString_FromStringAndSize(NULL, digestlen * 2);
-    if (!retval)
-            return NULL;
-    hex_digest = PyString_AsString(retval);
-    if (!hex_digest) {
-            Py_DECREF(retval);
-            return NULL;
-    }
-#endif
-
-    /* Make hex version of the digest */
-#if PY_VERSION_33plus
-    for(i=j=0; i < digestlen; i++) {
-        unsigned char c;
-        c = (digest[i] >> 4) & 0xf;
-        hex_digest[j++] = Py_hexdigits[c];
-        c = (digest[i] & 0xf);
-        hex_digest[j++] = Py_hexdigits[c];
-    }
-#ifdef Py_DEBUG
-    assert(_PyUnicode_CheckConsistency(retval, 1));
-#endif /* Py_DEBUG */
-#else
-    for(i=j=0; i < digestlen; i++) {
-        char c;
-        c = (digest[i] >> 4) & 0xf;
-        c = (c>9) ? c+'a'-10 : c + '0';
-        hex_digest[j++] = c;
-        c = (digest[i] & 0xf);
-        c = (c>9) ? c+'a'-10 : c + '0';
-        hex_digest[j++] = c;
-    }
-#endif /* PY_VERSION_33plus */
-    return retval;
-}
+Return the digest value as a string of hexadecimal digits.
+[clinic start generated code]*/
 
 static PyObject *
-SHA3_hexdigest(SHA3object *self, PyObject *unused)
+_sha3_sha3_224_hexdigest_impl(SHA3object *self)
+/*[clinic end generated code: output=75ad03257906918d input=2d91bb6e0d114ee3]*/
 {
     unsigned char digest[SHA3_MAX_DIGESTSIZE];
     SHA3_state temp;
@@ -365,82 +347,32 @@ SHA3_hexdigest(SHA3object *self, PyObject *unused)
     ENTER_HASHLIB(self);
     SHA3_copystate(temp, self->hash_state);
     LEAVE_HASHLIB(self);
-    if (self->hashbitlen) {
-        res = SHA3_done(&temp, digest);
-    } else {
-       res = SHA3_squeeze(&temp, digest, self->digestlen * 8);
-    }
+    res = SHA3_done(&temp, digest);
     SHA3_clearstate(temp);
     if (res != SUCCESS) {
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
-    return _SHA3_hexdigest(digest, self->digestlen);
-}
-
-static PyObject *
-SHA3_squeeze_digest(SHA3object *self, PyObject *args, PyObject *kwds)
-{
-    char *kwlist[] = {"length", "hex", NULL};
-    unsigned char *digest;
-    SHA3_state temp;
-    int res;
-    unsigned long digestlen; /* unsigned long long */
-    PyObject *result;
-    PyObject *ohex = NULL;
-    int hex;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "k|O:squeeze", kwlist,
-                                     &digestlen, &ohex)) {
-        return NULL;
-    }
-    if (ohex == NULL) {
-        hex = 0;
-    } else {
-        if ((hex = PyObject_IsTrue(ohex)) == -1) {
-            return NULL;
-        }
-    }
-
-    if ((digest = (unsigned char*)PyMem_Malloc(digestlen)) == NULL) {
-        return PyErr_NoMemory();
-    }
-
-    /* Get the raw (binary) digest value */
-    ENTER_HASHLIB(self);
-    SHA3_copystate(temp, self->hash_state);
-    LEAVE_HASHLIB(self);
-    res = SHA3_squeeze(&temp, digest, digestlen * 8);
-    SHA3_clearstate(temp);
-    if (res != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Squeeze()");
-        PyMem_Free(digest);
-        return NULL;
-    }
-    if (hex) {
-         result = _SHA3_hexdigest((const unsigned char *)digest,
-                                  digestlen);
-    } else {
-        result = PyBytes_FromStringAndSize((const char *)digest,
-                                           digestlen);
-    }
-    PyMem_Free(digest);
-    return result;
+    return _Py_strhex((const char *)digest,
+                      self->hash_state.fixedOutputLength / 8);
 }
 
 
-PyDoc_STRVAR(SHA3_update__doc__,
-"Update this hash object's state with the provided string.");
+/*[clinic input]
+_sha3.sha3_224.update
+
+    obj: object
+    /
+
+Update this hash object's state with the provided string.
+[clinic start generated code]*/
 
 static PyObject *
-SHA3_update(SHA3object *self, PyObject *args)
+_sha3_sha3_224_update(SHA3object *self, PyObject *obj)
+/*[clinic end generated code: output=06721d55b483e0af input=be44bf0d1c279791]*/
 {
-    PyObject *obj;
     Py_buffer buf;
     HashReturn res;
-
-    if (!PyArg_ParseTuple(args, "O:update", &obj))
-        return NULL;
 
     GET_BUFFER_VIEW_OR_ERROUT(obj, &buf);
 
@@ -466,7 +398,6 @@ SHA3_update(SHA3object *self, PyObject *args)
 #else
     res = SHA3_process(&self->hash_state, buf.buf, buf.len * 8);
 #endif
-    LEAVE_HASHLIB(self);
 
     if (res != SUCCESS) {
         PyBuffer_Release(&buf);
@@ -480,101 +411,88 @@ SHA3_update(SHA3object *self, PyObject *args)
     return Py_None;
 }
 
+
 static PyMethodDef SHA3_methods[] = {
-    {"copy",      (PyCFunction)SHA3_copy,      METH_NOARGS,
-         SHA3_copy__doc__},
-    {"digest",    (PyCFunction)SHA3_digest,    METH_NOARGS,
-         SHA3_digest__doc__},
-    {"hexdigest", (PyCFunction)SHA3_hexdigest, METH_NOARGS,
-         SHA3_hexdigest__doc__},
-    {"update",    (PyCFunction)SHA3_update,    METH_VARARGS,
-         SHA3_update__doc__},
-    {"squeeze", (PyCFunction)SHA3_squeeze_digest,
-         METH_VARARGS | METH_KEYWORDS, NULL},
+    _SHA3_SHA3_224_COPY_METHODDEF
+    _SHA3_SHA3_224_DIGEST_METHODDEF
+    _SHA3_SHA3_224_HEXDIGEST_METHODDEF
+    _SHA3_SHA3_224_UPDATE_METHODDEF
     {NULL,        NULL}         /* sentinel */
 };
+
 
 static PyObject *
 SHA3_get_block_size(SHA3object *self, void *closure)
 {
-#if !SHA3_HMAC_SUPPORT
-    /* HMAC-SHA3 hasn't been specified yet and no official test vectors are
-     * available. Thus block_size returns NotImplemented to prevent people
-     * from using SHA3 with the hmac module.
-     */
-    Py_INCREF(Py_NotImplemented);
-    return Py_NotImplemented;
-#else
-    /* http://www.di-mgt.com.au/hmac_sha3_testvectors.html
-     * The rate is already available in spongeState->rate but spongeState
-     * isn't part of the public API. Too bad!
-     *
-     * invariants:
-     *   capacity = 2 * hashbitlen; (for sha3-224, 256, 384, 512)
-     *   rate + capacity = 1600
-     */
-    int rate;
-
-    if (self->hashbitlen == 0) {
-        PyErr_SetString(PyExc_TypeError,
-                        "block_size not supported with arbitrarily-long "
-                        "output");
-        return NULL;
-    }
-
-    assert(self->hashbitlen == 224 || self->hashbitlen == 256 ||
-           self->hashbitlen == 384 || self->hashbitlen == 512);
-    rate = 1600 - (2 * self->hashbitlen);
-
-#if PY_MAJOR_VERSION >= 3
+    int rate = self->hash_state.sponge.rate;
     return PyLong_FromLong(rate / 8);
-#else
-    return PyInt_FromLong(rate / 8);
-#endif
-#endif
 }
+
 
 static PyObject *
 SHA3_get_name(SHA3object *self, void *closure)
 {
-#if PY_MAJOR_VERSION >= 3
-    return PyUnicode_FromFormat("sha3_%i", self->hashbitlen);
-#else
-    return PyString_FromFormat("sha3_%i", self->hashbitlen);
+    PyTypeObject *type = Py_TYPE(self);
+    if (type == &SHA3_224type) {
+        return PyUnicode_FromString("sha3_224");
+    } else if (type == &SHA3_256type) {
+        return PyUnicode_FromString("sha3_256");
+    } else if (type == &SHA3_384type) {
+        return PyUnicode_FromString("sha3_384");
+    } else if (type == &SHA3_512type) {
+        return PyUnicode_FromString("sha3_512");
+#ifdef PY_WITH_KECCAK
+    } else if (type == &Keccak_224type) {
+        return PyUnicode_FromString("keccak_224");
+    } else if (type == &Keccak_256type) {
+        return PyUnicode_FromString("keccak_256");
+    } else if (type == &Keccak_384type) {
+        return PyUnicode_FromString("keccak_384");
+    } else if (type == &Keccak_512type) {
+        return PyUnicode_FromString("keccak_512");
 #endif
+    } else if (type == &SHAKE128type) {
+        return PyUnicode_FromString("shake_128");
+    } else if (type == &SHAKE256type) {
+        return PyUnicode_FromString("shake_256");
+    } else {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
 }
+
 
 static PyObject *
 SHA3_get_digest_size(SHA3object *self, void *closure)
 {
-#if PY_MAJOR_VERSION >= 3
-    return PyLong_FromLong(self->digestlen);
-#else
-    return PyInt_FromLong(self->digestlen);
-#endif
+    return PyLong_FromLong(self->hash_state.fixedOutputLength / 8);
 }
+
 
 static PyObject *
 SHA3_get_capacity_bits(SHA3object *self, void *closure)
 {
-    unsigned int capacity = ((spongeState)self->hash_state).capacity;
-#if PY_MAJOR_VERSION >= 3
+    int capacity = 1600 - self->hash_state.sponge.rate;
     return PyLong_FromLong(capacity);
-#else
-    return PyInt_FromLong(capacity);
-#endif
 }
+
 
 static PyObject *
 SHA3_get_rate_bits(SHA3object *self, void *closure)
 {
-    unsigned int rate = ((spongeState)self->hash_state).rate;
-#if PY_MAJOR_VERSION >= 3
+    unsigned int rate = self->hash_state.sponge.rate;
     return PyLong_FromLong(rate);
-#else
-    return PyInt_FromLong(rate);
-#endif
 }
+
+static PyObject *
+SHA3_get_suffix(SHA3object *self, void *closure)
+{
+    unsigned char suffix[2];
+    suffix[0] = self->hash_state.delimitedSuffix;
+    suffix[1] = 0;
+    return PyBytes_FromStringAndSize((const char *)suffix, 1);
+}
+
 
 static PyGetSetDef SHA3_getseters[] = {
     {"block_size", (getter)SHA3_get_block_size, NULL, NULL, NULL},
@@ -582,182 +500,198 @@ static PyGetSetDef SHA3_getseters[] = {
     {"digest_size", (getter)SHA3_get_digest_size, NULL, NULL, NULL},
     {"_capacity_bits", (getter)SHA3_get_capacity_bits, NULL, NULL, NULL},
     {"_rate_bits", (getter)SHA3_get_rate_bits, NULL, NULL, NULL},
+    {"_suffix", (getter)SHA3_get_suffix, NULL, NULL, NULL},
     {NULL}  /* Sentinel */
 };
 
-static PyTypeObject SHA3type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "_sha3.SHA3",       /* tp_name */
-    sizeof(SHA3object), /* tp_size */
-    0,                  /* tp_itemsize */
-    /*  methods  */
-    (destructor)SHA3_dealloc, /* tp_dealloc */
-    0,                  /* tp_print */
-    0,                  /* tp_getattr */
-    0,                  /* tp_setattr */
-    0,                  /* tp_reserved */
-    0,                  /* tp_repr */
-    0,                  /* tp_as_number */
-    0,                  /* tp_as_sequence */
-    0,                  /* tp_as_mapping */
-    0,                  /* tp_hash */
-    0,                  /* tp_call */
-    0,                  /* tp_str */
-    0,                  /* tp_getattro */
-    0,                  /* tp_setattro */
-    0,                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT, /* tp_flags */
-    0,                  /* tp_doc */
-    0,                  /* tp_traverse */
-    0,                  /* tp_clear */
-    0,                  /* tp_richcompare */
-    0,                  /* tp_weaklistoffset */
-    0,                  /* tp_iter */
-    0,                  /* tp_iternext */
-    SHA3_methods,       /* tp_methods */
-    NULL,               /* tp_members */
-    SHA3_getseters,     /* tp_getset */
-};
 
-
-/* constructor helper */
-static PyObject *
-SHA3_factory(PyObject *args, PyObject *kwdict, const char *fmt,
-             int hashbitlen)
-{
-    SHA3object *newobj = NULL;
-    static char *kwlist[] = {"string", NULL};
-    PyObject *data_obj = NULL;
-    Py_buffer buf;
-    HashReturn res;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwdict, fmt, kwlist,
-                                     &data_obj)) {
-        return NULL;
+#define SHA3_TYPE(type_obj, type_name, type_doc, type_methods) \
+    static PyTypeObject type_obj = { \
+        PyVarObject_HEAD_INIT(NULL, 0) \
+        type_name,          /* tp_name */ \
+        sizeof(SHA3object), /* tp_size */ \
+        0,                  /* tp_itemsize */ \
+        /*  methods  */ \
+        (destructor)SHA3_dealloc, /* tp_dealloc */ \
+        0,                  /* tp_print */ \
+        0,                  /* tp_getattr */ \
+        0,                  /* tp_setattr */ \
+        0,                  /* tp_reserved */ \
+        0,                  /* tp_repr */ \
+        0,                  /* tp_as_number */ \
+        0,                  /* tp_as_sequence */ \
+        0,                  /* tp_as_mapping */ \
+        0,                  /* tp_hash */ \
+        0,                  /* tp_call */ \
+        0,                  /* tp_str */ \
+        0,                  /* tp_getattro */ \
+        0,                  /* tp_setattro */ \
+        0,                  /* tp_as_buffer */ \
+        Py_TPFLAGS_DEFAULT, /* tp_flags */ \
+        type_doc,           /* tp_doc */ \
+        0,                  /* tp_traverse */ \
+        0,                  /* tp_clear */ \
+        0,                  /* tp_richcompare */ \
+        0,                  /* tp_weaklistoffset */ \
+        0,                  /* tp_iter */ \
+        0,                  /* tp_iternext */ \
+        type_methods,       /* tp_methods */ \
+        NULL,               /* tp_members */ \
+        SHA3_getseters,     /* tp_getset */ \
+        0,                  /* tp_base */ \
+        0,                  /* tp_dict */ \
+        0,                  /* tp_descr_get */ \
+        0,                  /* tp_descr_set */ \
+        0,                  /* tp_dictoffset */ \
+        0,                  /* tp_init */ \
+        0,                  /* tp_alloc */ \
+        py_sha3_new,        /* tp_new */ \
     }
-
-    if (data_obj)
-        GET_BUFFER_VIEW_OR_ERROUT(data_obj, &buf);
-
-    if ((newobj = newSHA3object(hashbitlen)) == NULL) {
-        goto error;
-    }
-
-    if (SHA3_init(&newobj->hash_state, hashbitlen) != SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "internal error in SHA3 Update()");
-        goto error;
-    }
-
-    if (data_obj) {
-#ifdef WITH_THREAD
-        if (buf.len >= HASHLIB_GIL_MINSIZE) {
-            /* invariant: New objects can't be accessed by other code yet,
-             * thus it's safe to release the GIL without locking the object.
-             */
-            Py_BEGIN_ALLOW_THREADS
-            res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
-            Py_END_ALLOW_THREADS
-        }
-        else {
-            res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
-        }
-#else
-        res = SHA3_process(&newobj->hash_state, buf.buf, buf.len * 8);
-#endif
-        if (res != SUCCESS) {
-            PyErr_SetString(PyExc_RuntimeError,
-                            "internal error in SHA3 Update()");
-            goto error;
-        }
-        PyBuffer_Release(&buf);
-    }
-
-    return (PyObject *)newobj;
-
-  error:
-    if (newobj) {
-        SHA3_dealloc(newobj);
-    }
-    if (data_obj) {
-        PyBuffer_Release(&buf);
-    }
-    return NULL;
-
-}
-
-PyDoc_STRVAR(sha3_224__doc__,
-"sha3_224([string]) -> SHA3 object\n\
-\n\
-Return a new SHA3 hash object with a hashbit length of 28 bytes.");
-
-static PyObject *
-sha3_224(PyObject *self, PyObject *args, PyObject *kwdict)
-{
-    return SHA3_factory(args, kwdict, "|O:sha3_224", 224);
-}
-
 
 PyDoc_STRVAR(sha3_256__doc__,
 "sha3_256([string]) -> SHA3 object\n\
 \n\
 Return a new SHA3 hash object with a hashbit length of 32 bytes.");
 
-static PyObject *
-sha3_256(PyObject *self, PyObject *args, PyObject *kwdict)
-{
-    return SHA3_factory(args, kwdict, "|O:sha3_256", 256);
-}
-
 PyDoc_STRVAR(sha3_384__doc__,
 "sha3_384([string]) -> SHA3 object\n\
 \n\
 Return a new SHA3 hash object with a hashbit length of 48 bytes.");
-
-static PyObject *
-sha3_384(PyObject *self, PyObject *args, PyObject *kwdict)
-{
-    return SHA3_factory(args, kwdict, "|O:sha3_384", 384);
-}
 
 PyDoc_STRVAR(sha3_512__doc__,
 "sha3_512([string]) -> SHA3 object\n\
 \n\
 Return a new SHA3 hash object with a hashbit length of 64 bytes.");
 
-static PyObject *
-sha3_512(PyObject *self, PyObject *args, PyObject *kwdict)
-{
-    return SHA3_factory(args, kwdict, "|O:sha3_512", 512);
-}
+SHA3_TYPE(SHA3_224type, "_sha3.sha3_224", py_sha3_new__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_256type, "_sha3.sha3_256", sha3_256__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_384type, "_sha3.sha3_384", sha3_384__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_512type, "_sha3.sha3_512", sha3_512__doc__, SHA3_methods);
 
-PyDoc_STRVAR(sha3_0__doc__,
-"sha3_0([string]) -> SHA3 object\n\
+#ifdef PY_WITH_KECCAK
+PyDoc_STRVAR(keccak_224__doc__,
+"keccak_224([string]) -> Keccak object\n\
 \n\
-Return a new SHA3 hash object with arbitrary-long output.");
+Return a new Keccak hash object with a hashbit length of 28 bytes.");
+
+PyDoc_STRVAR(keccak_256__doc__,
+"keccak_256([string]) -> Keccak object\n\
+\n\
+Return a new Keccak hash object with a hashbit length of 32 bytes.");
+
+PyDoc_STRVAR(keccak_384__doc__,
+"keccak_384([string]) -> Keccak object\n\
+\n\
+Return a new Keccak hash object with a hashbit length of 48 bytes.");
+
+PyDoc_STRVAR(keccak_512__doc__,
+"keccak_512([string]) -> Keccak object\n\
+\n\
+Return a new Keccak hash object with a hashbit length of 64 bytes.");
+
+SHA3_TYPE(Keccak_224type, "_sha3.keccak_224", keccak_224__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_256type, "_sha3.keccak_256", keccak_256__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_384type, "_sha3.keccak_384", keccak_384__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_512type, "_sha3.keccak_512", keccak_512__doc__, SHA3_methods);
+#endif
+
 
 static PyObject *
-sha3_0(PyObject *self, PyObject *args, PyObject *kwdict)
+_SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
 {
-    return SHA3_factory(args, kwdict, "|O:sha3_0", 0);
+    unsigned char *digest = NULL;
+    SHA3_state temp;
+    int res;
+    PyObject *result = NULL;
+
+    if ((digest = (unsigned char*)PyMem_Malloc(digestlen)) == NULL) {
+        return PyErr_NoMemory();
+    }
+
+    /* Get the raw (binary) digest value */
+    ENTER_HASHLIB(self);
+    SHA3_copystate(temp, self->hash_state);
+    LEAVE_HASHLIB(self);
+    res = SHA3_done(&temp, NULL);
+    if (res != SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 done()");
+        goto error;
+    }
+    res = SHA3_squeeze(&temp, digest, digestlen * 8);
+    if (res != SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Squeeze()");
+        return NULL;
+    }
+    if (hex) {
+         result = _Py_strhex((const char *)digest, digestlen);
+    } else {
+        result = PyBytes_FromStringAndSize((const char *)digest,
+                                           digestlen);
+    }
+  error:
+    if (digest != NULL) {
+        PyMem_Free(digest);
+    }
+    SHA3_clearstate(temp);
+    return result;
 }
 
-/* List of functions exported by this module */
-static struct PyMethodDef SHA3_functions[] = {
-    {"sha3_224", (PyCFunction)sha3_224, METH_VARARGS|METH_KEYWORDS,
-         sha3_224__doc__},
-    {"sha3_256", (PyCFunction)sha3_256, METH_VARARGS|METH_KEYWORDS,
-         sha3_256__doc__},
-    {"sha3_384", (PyCFunction)sha3_384, METH_VARARGS|METH_KEYWORDS,
-         sha3_384__doc__},
-    {"sha3_512", (PyCFunction)sha3_512, METH_VARARGS|METH_KEYWORDS,
-         sha3_512__doc__},
-    {"sha3_0", (PyCFunction)sha3_0, METH_VARARGS|METH_KEYWORDS,
-         sha3_0__doc__},
-    {NULL,      NULL}            /* Sentinel */
+
+/*[clinic input]
+_sha3.shake_128.digest
+
+    length: unsigned_long(bitwise=True)
+    \
+
+Return the digest value as a string of binary data.
+[clinic start generated code]*/
+
+static PyObject *
+_sha3_shake_128_digest_impl(SHA3object *self, unsigned long length)
+/*[clinic end generated code: output=2313605e2f87bb8f input=608c8ca80ae9d115]*/
+{
+    return _SHAKE_digest(self, length, 0);
+}
+
+
+/*[clinic input]
+_sha3.shake_128.hexdigest
+
+    length: unsigned_long(bitwise=True)
+    \
+
+Return the digest value as a string of hexadecimal digits.
+[clinic start generated code]*/
+
+static PyObject *
+_sha3_shake_128_hexdigest_impl(SHA3object *self, unsigned long length)
+/*[clinic end generated code: output=bf8e2f1e490944a8 input=64e56b4760db4573]*/
+{
+    return _SHAKE_digest(self, length, 1);
+}
+
+
+static PyMethodDef SHAKE_methods[] = {
+    _SHA3_SHA3_224_COPY_METHODDEF
+    _SHA3_SHAKE_128_DIGEST_METHODDEF
+    _SHA3_SHAKE_128_HEXDIGEST_METHODDEF
+    _SHA3_SHA3_224_UPDATE_METHODDEF
+    {NULL,        NULL}         /* sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
+PyDoc_STRVAR(shake_128__doc__,
+"shake_128([string]) -> SHAKE object\n\
+\n\
+Return a new SHAKE hash object.");
+
+PyDoc_STRVAR(shake_256__doc__,
+"shake_256([string]) -> SHAKE object\n\
+\n\
+Return a new SHAKE hash object.");
+
+SHA3_TYPE(SHAKE128type, "_sha3.shake_128", shake_128__doc__, SHAKE_methods);
+SHA3_TYPE(SHAKE256type, "_sha3.shake_256", shake_256__doc__, SHAKE_methods);
+
 
 /* Initialize this module. */
 static struct PyModuleDef _SHA3module = {
@@ -765,43 +699,58 @@ static struct PyModuleDef _SHA3module = {
         "_sha3",
         NULL,
         -1,
-        SHA3_functions,
+        NULL,
         NULL,
         NULL,
         NULL,
         NULL
 };
 
-#define INITERROR return NULL
 
 PyMODINIT_FUNC
 PyInit__sha3(void)
-#else
-
-#define INITERROR return
-
-void
-init_sha3(void)
-#endif
-
 {
-    PyObject *m;
+    PyObject *m = NULL;
 
-    Py_TYPE(&SHA3type) = &PyType_Type;
-    if (PyType_Ready(&SHA3type) < 0) {
-        INITERROR;
+    m = PyModule_Create(&_SHA3module);
+
+#define init_sha3type(name, type)     \
+    do {                              \
+        Py_TYPE(type) = &PyType_Type; \
+        if (PyType_Ready(type) < 0) { \
+            goto error;               \
+        }                             \
+        Py_INCREF((PyObject *)type);  \
+        if (PyModule_AddObject(m, name, (PyObject *)type) < 0) { \
+            goto error;               \
+        }                             \
+    } while(0)
+
+    init_sha3type("sha3_224", &SHA3_224type);
+    init_sha3type("sha3_256", &SHA3_256type);
+    init_sha3type("sha3_384", &SHA3_384type);
+    init_sha3type("sha3_512", &SHA3_512type);
+#ifdef PY_WITH_KECCAK
+    init_sha3type("keccak_224", &Keccak_224type);
+    init_sha3type("keccak_256", &Keccak_256type);
+    init_sha3type("keccak_384", &Keccak_384type);
+    init_sha3type("keccak_512", &Keccak_512type);
+#endif
+    init_sha3type("shake_128", &SHAKE128type);
+    init_sha3type("shake_256", &SHAKE256type);
+
+#undef init_sha3type
+
+    if (PyModule_AddIntConstant(m, "keccakopt", KeccakOpt) < 0) {
+        goto error;
+    }
+    if (PyModule_AddStringConstant(m, "implementation",
+                                   KeccakP1600_implementation) < 0) {
+        goto error;
     }
 
-#if PY_MAJOR_VERSION >= 3
-    m = PyModule_Create(&_SHA3module);
-#else
-    m = Py_InitModule3("_sha3", SHA3_functions, NULL);
-#endif
-
-    PyModule_AddIntConstant(m, "_keccakopt", KeccakOpt);
-    PyModule_AddIntConstant(m, "_hmac_support", SHA3_HMAC_SUPPORT);
-
-#if PY_MAJOR_VERSION >= 3
     return m;
-#endif
+  error:
+    Py_DECREF(m);
+    return NULL;
 }
