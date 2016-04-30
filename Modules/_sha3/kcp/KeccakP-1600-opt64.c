@@ -15,7 +15,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include <string.h>
 #include <stdlib.h>
-/* #include "brg_endian.h" */
+#include "brg_endian.h"
 #include "KeccakP-1600-opt64-config.h"
 
 #if NOT_PYTHON

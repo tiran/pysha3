@@ -14,7 +14,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include    <string.h>
-/* #include "brg_endian.h" */
+#include "brg_endian.h"
 #include "KeccakP-1600-SnP.h"
 #include "SnP-Relaned.h"
 

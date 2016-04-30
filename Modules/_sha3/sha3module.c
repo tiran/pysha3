@@ -16,7 +16,6 @@
  */
 
 #include "Python.h"
-#include "pystrhex.h"
 #include "../hashlib.h"
 #include "../pymemsets.h"
 
@@ -30,7 +29,6 @@
  *  - C++ comments are converted to ANSI C comments.
  *  - all function names are mangled
  *  - typedef for UINT64 is commented out.
- *  - brg_endian.h is removed
  *
  * *************************************************************************/
 
@@ -50,16 +48,6 @@
   /* 64bit platforms with unsigned int64 */
   typedef PY_UINT64_T UINT64;
   typedef unsigned char UINT8;
-#endif
-
-/* replacement for brg_endian.h */
-#define IS_LITTLE_ENDIAN 1234
-#define IS_BIG_ENDIAN 4321
-#if PY_LITTLE_ENDIAN
-#define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN
-#endif
-#if PY_BIG_ENDIAN
-#define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN
 #endif
 
 /* mangle names */
@@ -120,6 +108,69 @@
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
 #define SHA3_clearstate(state) \
     _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
+
+/* **************************************************************************
+ * backport extras
+ */
+#ifndef Py_UNUSED
+#ifdef __GNUC__
+#define Py_UNUSED(name) _unused_ ## name __attribute__((unused))
+#else
+#define Py_UNUSED(name) _unused_ ## name
+#endif
+#endif /* Py_UNUSED */
+
+#if PY_MAJOR_VERSION >= 3
+#define Hashname_FromString PyUnicode_FromString
+#define Hashsize_FromLong PyLong_FromLong
+#else
+#define Hashname_FromString PyString_FromString
+#define Hashsize_FromLong PyInt_FromLong
+#endif
+
+/* _Py_strhex() */
+static PyObject *strhex(const char* argbuf, const Py_ssize_t arglen)
+{
+    static const char *hexdigits = "0123456789abcdef";
+
+    PyObject *retval;
+#if PY_MAJOR_VERSION >= 3
+    Py_UCS1 *retbuf;
+#else
+    char *retbuf;
+#endif
+    Py_ssize_t i, j;
+
+    assert(arglen >= 0);
+    if (arglen > PY_SSIZE_T_MAX / 2)
+        return PyErr_NoMemory();
+
+#if PY_MAJOR_VERSION >= 3
+    retval = PyUnicode_New(arglen * 2, 127);
+    if (!retval)
+            return NULL;
+    retbuf = PyUnicode_1BYTE_DATA(retval);
+#else
+    retval = PyString_FromStringAndSize(NULL, arglen * 2);
+    if (!retval)
+            return NULL;
+    retbuf = PyString_AsString(retval);
+    if (!retbuf) {
+            Py_DECREF(retval);
+            return NULL;
+    }
+#endif
+    /* make hex version of string, taken from shamodule.c */
+    for (i=j=0; i < arglen; i++) {
+        unsigned char c;
+        c = (argbuf[i] >> 4) & 0xf;
+        retbuf[j++] = hexdigits[c];
+        c = argbuf[i] & 0xf;
+        retbuf[j++] = hexdigits[c];
+    }
+
+    return retval;
+}
 
 
 /*[clinic input]
@@ -353,8 +404,8 @@ _sha3_sha3_224_hexdigest_impl(SHA3object *self)
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
-    return _Py_strhex((const char *)digest,
-                      self->hash_state.fixedOutputLength / 8);
+    return strhex((const char *)digest,
+                  self->hash_state.fixedOutputLength / 8);
 }
 
 
@@ -425,7 +476,7 @@ static PyObject *
 SHA3_get_block_size(SHA3object *self, void *closure)
 {
     int rate = self->hash_state.sponge.rate;
-    return PyLong_FromLong(rate / 8);
+    return Hashsize_FromLong(rate / 8);
 }
 
 
@@ -434,27 +485,27 @@ SHA3_get_name(SHA3object *self, void *closure)
 {
     PyTypeObject *type = Py_TYPE(self);
     if (type == &SHA3_224type) {
-        return PyUnicode_FromString("sha3_224");
+        return Hashname_FromString("sha3_224");
     } else if (type == &SHA3_256type) {
-        return PyUnicode_FromString("sha3_256");
+        return Hashname_FromString("sha3_256");
     } else if (type == &SHA3_384type) {
-        return PyUnicode_FromString("sha3_384");
+        return Hashname_FromString("sha3_384");
     } else if (type == &SHA3_512type) {
-        return PyUnicode_FromString("sha3_512");
+        return Hashname_FromString("sha3_512");
 #ifdef PY_WITH_KECCAK
     } else if (type == &Keccak_224type) {
-        return PyUnicode_FromString("keccak_224");
+        return Hashname_FromString("keccak_224");
     } else if (type == &Keccak_256type) {
-        return PyUnicode_FromString("keccak_256");
+        return Hashname_FromString("keccak_256");
     } else if (type == &Keccak_384type) {
-        return PyUnicode_FromString("keccak_384");
+        return Hashname_FromString("keccak_384");
     } else if (type == &Keccak_512type) {
-        return PyUnicode_FromString("keccak_512");
+        return Hashname_FromString("keccak_512");
 #endif
     } else if (type == &SHAKE128type) {
-        return PyUnicode_FromString("shake_128");
+        return Hashname_FromString("shake_128");
     } else if (type == &SHAKE256type) {
-        return PyUnicode_FromString("shake_256");
+        return Hashname_FromString("shake_256");
     } else {
         PyErr_BadInternalCall();
         return NULL;
@@ -465,7 +516,7 @@ SHA3_get_name(SHA3object *self, void *closure)
 static PyObject *
 SHA3_get_digest_size(SHA3object *self, void *closure)
 {
-    return PyLong_FromLong(self->hash_state.fixedOutputLength / 8);
+    return Hashsize_FromLong(self->hash_state.fixedOutputLength / 8);
 }
 
 
@@ -473,7 +524,7 @@ static PyObject *
 SHA3_get_capacity_bits(SHA3object *self, void *closure)
 {
     int capacity = 1600 - self->hash_state.sponge.rate;
-    return PyLong_FromLong(capacity);
+    return Hashsize_FromLong(capacity);
 }
 
 
@@ -481,7 +532,7 @@ static PyObject *
 SHA3_get_rate_bits(SHA3object *self, void *closure)
 {
     unsigned int rate = self->hash_state.sponge.rate;
-    return PyLong_FromLong(rate);
+    return Hashsize_FromLong(rate);
 }
 
 static PyObject *
@@ -623,7 +674,7 @@ _SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
         return NULL;
     }
     if (hex) {
-         result = _Py_strhex((const char *)digest, digestlen);
+         result = strhex((const char *)digest, digestlen);
     } else {
         result = PyBytes_FromStringAndSize((const char *)digest,
                                            digestlen);
@@ -693,6 +744,7 @@ SHA3_TYPE(SHAKE128type, "_sha3.shake_128", shake_128__doc__, SHAKE_methods);
 SHA3_TYPE(SHAKE256type, "_sha3.shake_256", shake_256__doc__, SHAKE_methods);
 
 
+#if PY_MAJOR_VERSION >= 3
 /* Initialize this module. */
 static struct PyModuleDef _SHA3module = {
         PyModuleDef_HEAD_INIT,
@@ -706,13 +758,19 @@ static struct PyModuleDef _SHA3module = {
         NULL
 };
 
-
 PyMODINIT_FUNC
 PyInit__sha3(void)
 {
     PyObject *m = NULL;
-
     m = PyModule_Create(&_SHA3module);
+#else
+
+void
+init_sha3(void)
+{
+    PyObject *m = NULL;
+    m = Py_InitModule3("_sha3", NULL, NULL);
+#endif
 
 #define init_sha3type(name, type)     \
     do {                              \
@@ -749,8 +807,13 @@ PyInit__sha3(void)
         goto error;
     }
 
+#if PY_MAJOR_VERSION >= 3
     return m;
   error:
     Py_DECREF(m);
     return NULL;
+#else
+  error:
+    return;
+#endif
 }
