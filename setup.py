@@ -63,9 +63,7 @@ class TestCommand(Command):
 
 exts = []
 sha3_depends = ["Modules/hashlib.h", "Modules/pymemsets.h"]
-sha3_depends.extend(glob("Modules/_sha3/keccak/*.c"))
-sha3_depends.extend(glob("Modules/_sha3/keccak/*.h"))
-sha3_depends.extend(glob("Modules/_sha3/keccak/*.macros"))
+sha3_depends.extend(glob("Modules/_sha3/kcp/*"))
 exts.append(Extension("_sha3",
                       ["Modules/_sha3/sha3module.c", "Modules/pymemsets.c"],
                       depends=sha3_depends))
@@ -109,12 +107,10 @@ setup(
         "Programming Language :: C",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.2",
-        "Programming Language :: Python :: 3.3",
-        # "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
         "Topic :: Security :: Cryptography",
     ],
 )
