@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-import sys
 import os
 import subprocess
+import sys
+from distutils.core import Command
 from glob import glob
-from distutils.core import setup, Command
-from distutils.extension import Extension
+try:
+    from setuptools import setup, Extension
+except ImportError:
+    from distutils.core import setup
+    from distutils.extension import Extension
 
 
 class TestCommand(Command):

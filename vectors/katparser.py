@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import glob
 
+
 def katparser(katfile):
     """Trivial parser for KAT files
     """
@@ -25,6 +26,7 @@ def katparser(katfile):
                 length = msg = md = None
             else:
                 raise ValueError(key)
+
 
 def main():
     for filename in sorted(glob.glob("ShortMsgKAT_*.txt")):

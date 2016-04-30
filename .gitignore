@@ -1,6 +1,7 @@
 /build/
 /dist/
 /.tox/
+/*.egg-info
 core
 MANIFEST
 README\.html
