@@ -1,19 +1,28 @@
 Changelog
 =========
 
-pysha3 0.4
-----------
+pysha3 1.0b1
+------------
 
-*Release date: ??-???-2012*
+*Release date: 01-May-2016*
+
+- Update backend to use the latest Keccak Code Package. pysha3 now implements
+  the official NIST standard. The old Keccak hashes are available with
+  keccak prefix.
+
+- Add SHAKE support.
+
+- All sha3, shake and keccak variants are separate types instead of factory
+  functions that return the same type.
+
+- Drop Python 2.6 and Python 3.0 to 3.3 support.
 
 - Fix typo that disabled threading optimization.
 
-- Add KAT files for additional tests.
+- Add vector files for additional tests.
 
 - Add experimental HMAC support based on examples from
-  http://www.di-mgt.com.au/hmac_sha3_testvectors.html . HMAC-SHA-3 isn't
-  standardized yet and disabled unless the module is compiled with
-  SHA3_HMAC_SUPPORT flag.
+  http://wolfgang-ehrhardt.de/hmac-sha3-testvectors.html .
 
 - Test hashing of unaligned data.
 
@@ -22,13 +31,12 @@ pysha3 0.4
   https://www.securecoding.cert.org/confluence/display/seccode/MSC06-C.+Be+aware+of+compiler+optimization+when+dealing+with+sensitive+data
   explains the motivation for memset_s().
 
-- Add tox support
+- Add tox support.
 
-- Add _capacity_bits and _rate_bits attributes for diagnostic purposes
+- Add Travis and appveyor integration.
 
-- Add SHA3_0 support and sha3_0.squeeze(lenght, hex=False) method for
-  arbitrary-length sponge squeezing. SHA3_0 uses a capacity of 1024 and a rate
-  of 576.
+- Add _capacity_bits, _rate_bits and _suffix attributes for diagnostic
+  purposes.
 
 
 pysha3 0.3

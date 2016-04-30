@@ -3,172 +3,73 @@ pysha3
 ======
 
 SHA-3 wrapper (keccak) for Python. The package is a wrapper around the
-optimized reference implementation from http://keccak.noekeon.org/ . Only
-the optimizations for 32 and 64bit platforms are used. The optimized SSE and
-ARM assembly variants are ignored for now.
+optimized Keccak Code Package, https://github.com/gvanas/KeccakCodePackage .
 
-The module is a standalone version of my SHA-3 module from Python 3.4
+The module is a standalone version of my SHA-3 module from Python 3.6
 (currently under development). The code in sha3module.c has been modified to
-be compatible with Python 2.6 to 3.4. Python 2.5 and earlier are not
+be compatible with Python 2.7 to 3.5. Python 2.6 and earlier are not
 supported.
+
+
+Updates since pysha 0.3
+=======================
+
+**pysha3 1.0 is not compatible with pysha3 0.3!**
+
+pysha3 < 1.0 used the old Keccak implementation. During the finalization of
+SHA3, NIST changed the delimiter suffix from 0x01 to 0x06. The Keccak sponge
+function stayed the same. pysha3 1.0 provides the previous Keccak hash, too.
 
 
 Platforms
 =========
 
-pysha3 has been successfully tested on at least 8 CPU architectures, 7 compiler
-families and 10 operating systems families:
+pysha3 has been successfully tested on several platforms:
 
- - Linux (GCC 4.3 and 4.6, clang 3.0) on X86, X86_64 and ARMv6 (little endian)
- - Windows (VS 2008, VS 2010) on X86 and X86_64
- - FreeBSD 7.4 - 10 (GCC, clang) on X86 and X86_64
- - NetBSD 5.1 (GCC) on X86 and X86_64
- - Mac OS X 10.8 (clang4) on X86_64
- - HP-UX (HP C/aC++) on IA64 (little endian) and PA-RISC (big endian)
- - Solaris 10 (Oracle Solaris Studio 12.3) on SPARC (big endian)
- - Solaris 11 (Oracle Solaris Studio 12.3) on X86_64.
- - AIX (XLC 12.1) on PowerPC (big endian)
- - Tru64 (Compaq C) on Alpha (little endian)
-
-Thank you very much to Trent Nelson for http://www.snakebite.net/ .
-
-Donation for ARMv7 support
---------------------------
-
-The Keccak reference implementation contains optimized assembly code for ARM.
-However neither Trent nor I have access to ARM platforms except for my 1st
-generation Raspberry Pi. We gladly accept hardware donations of ARM boards
-and periphery, either to the Snakebite network or to me personally. Please
-contact me if you like to help.
+ - Linux (GCC, clang) on X86, X86_64 and ARMv6 (little endian)
+ - Windows (VS 2008, VS 2010, VS2015) on X86 and X86_64
 
 
 Usage
 =====
 
 The `sha3` module contains several constructors for hash objects with a
-PEP 247 compatible interface. The module provides `sha3_228()`, `sha3_256()`,
-`sha3_384()`, and `sha3_512()`.
+PEP 247 compatible interface. The module provides SHA3, SHAKE and Keccak:
+
+* `sha3_228()`, `sha3_256()`, `sha3_384()`, and `sha3_512()`
+* `shake_128()`, `shake_256()`
+* `keccak_228()`, `keccak_256()`, `keccak_384()`, and `keccak_512()`
 
 The `sha3` module monkey patches the `hashlib` module . The monkey patch is
 automatically activated with the first import of the `sha3` module. The
-`hashlib` module of Python 3.4 will support the four SHA-3 algorithms
-on all platforms. Therefore you shouldn't use the sha3 module directly
-and rather go through the `hashlib` interface::
+`hashlib` module of Python 3.6 will support the four SHA-3 algorithms and
+the two SHAKE algorithms on all platforms. Therefore you shouldn't use the
+sha3 module directly and rather go through the `hashlib` interface::
 
   >>> import sys
   >>> import hashlib
-  >>> if sys.version_info < (3, 4):
+  >>> if sys.version_info < (3, 6):
   ...    import sha3
-  >>> s = hashlib.new("sha3_512")
-  >>> s = hashlib.sha3_512() # alternative
+  >>> s = hashlib.sha3_512()
   >>> s.name
   'sha3_512'
   >>> s.digest_size
   64
   >>> s.update(b"data")
   >>> s.hexdigest()
+  'ceca4daf960c2bbfb4a9edaca9b8137a801b65bae377e0f534ef9141c8684c0fedc1768d1afde9766572846c42b935f61177eaf97d355fa8dc2bca3fecfa754d'
+
+  >>> s = hashlib.shake_256()
+  >>> s.update(b"data")
+  >>> s.hexdigest(4)
+  'c73dbed8'
+  >>> s.hexdigest(8)
+  'c73dbed8527f5ae0'
+  >>> s.hexdigest(16)
+  'c73dbed8527f5ae0568679f30ecc5cb6'
+
+  >>> import sha3
+  >>> k = sha3.keccak_512()
+  >>> k.update(b"data")
+  >>> k.hexdigest()
   '1065aceeded3a5e4412e2187e919bffeadf815f5bd73d37fe00d384fe29f55f08462fdabe1007b993ce5b8119630e7db93101d9425d6e352e22ffe3dcb56b825'
-
-**Don't use SHA-3 for HMAC!** HMAC hasn't been specified for SHA-3 yet and no
-test vectors are available, too.
-
-
-Comments from sha3module header
-===============================
-
-The code is based on KeccakReferenceAndOptimized-3.2.zip from 29 May 2012.
-
-The reference implementation is altered in this points:
-  - C++ comments are converted to ANSI C comments.
-  - All functions and globals are declared static.
-  - The typedef for UINT64 is commented out.
-  - brg_endian.h is removed.
-  - KeccakF-1600-opt[32|64]-settings.h are commented out
-  - Some unused functions are commented out to silence compiler warnings.
-
-In order to avoid name clashes with other software I have to declare all
-Keccak functions and global data as static. The C code is directly
-included into this file in order to access the static functions.
-
-Keccak can be tuned with several paramenters. I try to explain all options
-as far as I understand them. The reference implementation also contains
-assembler code for ARM platforms (NEON instructions).
-
-Common
-------
-
-  `Unrolling`
-    loop unrolling (24, 12, 8, 6, 4, 3, 2, 1)
-
-  `UseBebigokimisa`
-    lane complementing
-
-64bit platforms
----------------
-
-default settings of common options
-
-  `Unrolling`
-    24
-  `UseBebigokimisa`
-    enabled
-
-Additional optimiation instructions (disabled by default):
-
-  `UseSSE`
-    use Stream SIMD extensions
-
-    `UseOnlySIMD64`
-      limit to 64bit instructions, otherwise 128bit
-
-    `w/o UseOnlySIMD64`
-      requires compiler argument `-mssse3` or `-mtune=core2` or better
-
-  `UseMMX`
-    use 64bit MMX instructions
-
-  `UseXOP`
-    use AMD's eXtended Operations (128bit SSE extension)
-
-When neither `UseSSE`, `UseMMX` nor `UseXOP` is configured, `ROL64`
-(rotate left 64) is implemented as:
-
-  Windows
-    _rotl64()
-
-  `UseSHLD`
-    use shld (shift left) asm optimization
-
-  otherwise
-    shift and xor
-
-`UseBebigokimisa` can't be used in combination with `UseSSE`, `UseMMX` or
-`UseXOP`. `UseOnlySIMD64` has no effect unless UseSSE is specified.
-
-Tests have shown that `UseSSE` + `UseOnlySIMD64` is about three to four
-times SLOWER than `UseBebigokimisa`. `UseSSE` and `UseMMX` are about two
-times slower. (tested by CH and AP)
-
-32bit platforms
----------------
-
-default settings of common options
-
-  `Unrolling`
-    2
-  `UseBebigokimisa`
-    disabled
-
- `UseSchedule`
-   `1`
-     unknown
-
-   `2`
-     unknown
-
-   `3` [default]
-     unknown, no `UseBebigokimisa`, `Unrolling` must be 2
-
-  `UseInterleaveTables`
-    use two 64k lookup tables for (de)interleaving (disabled by default)
-
