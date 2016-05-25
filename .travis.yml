@@ -1,3 +1,9 @@
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "bZD2u6cC07YuPSDMa92Df5sb409+StAV0Y/wsM4hfJSGZd9Tg/On4N8IPKNj8g6XGTI3ewFFuVz41PJNUOtLK0H0gqCAUPcgIiUqtGDewqEh38yhyU/+uIoKRxhQEAYEL+IysnROkghQlrNDRsmLZMLsTARhExxE4cO9HsCPZDSTN2JPiJoVKKzOZaq0+rOsxjPBaJPJ8vSXP5oRk8/I8Lt8nvQ9R8szS7ChiNY1iRRQ/JxEwGi4J7EH7gU/0ReWM2IDMSPt8NpweQKH1pD27hWDWO+eIH2CjOW5em0JBpnmPV++BvDGyMAXPnJD5xSPT1EVHTHjI7khc/RnChf7lfa8EodubzCni2eJPzwUYxcl3S5MwADCmvpsLZhhlpSpVztg9dPLr+cW7chbHnR1PlYMNJ+K2vwuTMTcBc3XRTWKvgEkkQrLWhodKTDTv8luR//Y4MERj6gkvGWN4q6vv/VDAVUUlr+h+V5CH1UiWvyR7rBxrAjTd/4bwHh6PDzgdaGTvXlonN8jmQL0wi1g0x8gMEPcxneKuRdtvWQviQerwpVJJyrewDGxfN/EjeyqqAzz3AkuESQgkvkSoK7YNGCRxaFVSrhpTkaThsLfc44JvZtJEaHQAGzizYn66cl4OBQXk0Zpz+XA5hD+cF0kkeotWK3LcetisePaWJf6uGs="
+
 sudo: false
 
 language: python
@@ -29,3 +35,14 @@ install:
 
 script:
   - tox
+
+addons:
+  coverity_scan:
+    project:
+      name: "tiran/pysha3"
+      description: "Build submitted via Travis CI"
+    notification_email: christian@python.org
+    build_command_prepend: "make clean"
+    build_command: "make test"
+    branch_pattern: coverity_scan
+

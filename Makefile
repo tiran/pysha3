@@ -2,7 +2,7 @@ PYTHON=python
 SETUPFLAGS=
 COMPILEFLAGS=
 INSTALLFLAGS=
-PYTHONS=python2.6 python2.7 python3.2 python3.3 python3.4
+PYTHONS=python2.7 python3.4 python3.5
 
 .PHONY: inplace all rebuild test_inplace test fulltests clean distclean
 .PHONY: sdist install
@@ -27,14 +27,7 @@ fulltest:
 	$(MAKE) clean
 	@set -e; \
 	for python in $(PYTHONS); do \
-		echo "\n*** $$python without HMAC ***"; \
 		$$python $(SETUPFLAGS) setup.py -q test; \
-	done
-	$(MAKE) clean
-	@set -e; \
-	for python in $(PYTHONS); do \
-		echo "\n*** $$python with HMAC ***"; \
-		$$python $(SETUPFLAGS) setup.py -q build_ext -DSHA3_HMAC_SUPPORT test; \
 	done
 	$(MAKE) clean
 
@@ -55,3 +48,4 @@ sdist: README.html
 install:
 	$(PYTHON) setup.py $(SETUPFLAGS) build $(COMPILEFLAGS)
 	$(PYTHON) setup.py install $(INSTALLFLAGS)
+
