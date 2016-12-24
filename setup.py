@@ -66,17 +66,25 @@ class TestCommand(Command):
 
 
 exts = []
-sha3_depends = ["Modules/hashlib.h", "Modules/pymemsets.h"]
+sha3_depends = ["setup.py", "Modules/hashlib.h", "Modules/pymemsets.h"]
 sha3_depends.extend(glob("Modules/_sha3/kcp/*"))
-exts.append(Extension("_sha3",
-                      ["Modules/_sha3/sha3module.c", "Modules/pymemsets.c"],
-                      depends=sha3_depends))
+exts.append(
+    Extension(
+        "_sha3",
+        ["Modules/_sha3/sha3module.c", "Modules/pymemsets.c"],
+        depends=sha3_depends,
+        define_macros=[("PY_WITH_KECCAK", "1")]
+    )
+)
 
 long_description = []
+
 with open("README.txt") as f:
     long_description.append(f.read())
+
 with open("CHANGES.txt") as f:
     long_description.append(f.read())
+
 
 setup(
     name="pysha3",

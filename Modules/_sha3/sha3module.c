@@ -17,7 +17,6 @@
 
 #include "Python.h"
 #include "../hashlib.h"
-#include "../pymemsets.h"
 
 /* **************************************************************************
  *                          SHA-3 (Keccak) and SHAKE
@@ -29,6 +28,7 @@
  *  - C++ comments are converted to ANSI C comments.
  *  - all function names are mangled
  *  - typedef for UINT64 is commented out.
+ *  - brg_endian.h is removed
  *
  * *************************************************************************/
 
@@ -36,8 +36,11 @@
   /* opt64 uses un-aligned memory access that causes a BUS error with msg
    * 'invalid address alignment' on SPARC. */
   #define KeccakOpt 32
+#elif PY_BIG_ENDIAN
+  /* opt64 is not yet supported on big endian platforms */
+  #define KeccakOpt 32
 #elif SIZEOF_VOID_P == 8 && defined(PY_UINT64_T)
-  /* opt64 works only for 64bit platforms with unsigned int64 */
+  /* opt64 works only on little-endian 64bit platforms with unsigned int64 */
   #define KeccakOpt 64
 #else
   /* opt32 is used for the remaining 32 and 64bit platforms */
@@ -48,6 +51,16 @@
   /* 64bit platforms with unsigned int64 */
   typedef PY_UINT64_T UINT64;
   typedef unsigned char UINT8;
+#endif
+
+/* replacement for brg_endian.h */
+#define IS_LITTLE_ENDIAN 1234
+#define IS_BIG_ENDIAN 4321
+#if PY_LITTLE_ENDIAN
+#define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN
+#endif
+#if PY_BIG_ENDIAN
+#define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN
 #endif
 
 /* mangle names */
@@ -100,78 +113,15 @@
 #endif
 
 #define SHA3_MAX_DIGESTSIZE 64 /* 64 Bytes (512 Bits) for 224 to 512 */
+#define SHA3_LANESIZE (20 * 8) /* ExtractLane needs max uint64_t[20] extra. */
 #define SHA3_state Keccak_HashInstance
 #define SHA3_init Keccak_HashInitialize
 #define SHA3_process Keccak_HashUpdate
 #define SHA3_done Keccak_HashFinal
 #define SHA3_squeeze Keccak_HashSqueeze
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
-#define SHA3_clearstate(state) \
-    _Py_memset_s(&(state), sizeof(SHA3_state), 0, sizeof(SHA3_state))
 
-/* **************************************************************************
- * backport extras
- */
-#ifndef Py_UNUSED
-#ifdef __GNUC__
-#define Py_UNUSED(name) _unused_ ## name __attribute__((unused))
-#else
-#define Py_UNUSED(name) _unused_ ## name
-#endif
-#endif /* Py_UNUSED */
-
-#if PY_MAJOR_VERSION >= 3
-#define Hashname_FromString PyUnicode_FromString
-#define Hashsize_FromLong PyLong_FromLong
-#else
-#define Hashname_FromString PyString_FromString
-#define Hashsize_FromLong PyInt_FromLong
-#endif
-
-/* _Py_strhex() */
-static PyObject *strhex(const char* argbuf, const Py_ssize_t arglen)
-{
-    static const char *hexdigits = "0123456789abcdef";
-
-    PyObject *retval;
-#if PY_MAJOR_VERSION >= 3
-    Py_UCS1 *retbuf;
-#else
-    char *retbuf;
-#endif
-    Py_ssize_t i, j;
-
-    assert(arglen >= 0);
-    if (arglen > PY_SSIZE_T_MAX / 2)
-        return PyErr_NoMemory();
-
-#if PY_MAJOR_VERSION >= 3
-    retval = PyUnicode_New(arglen * 2, 127);
-    if (!retval)
-            return NULL;
-    retbuf = PyUnicode_1BYTE_DATA(retval);
-#else
-    retval = PyString_FromStringAndSize(NULL, arglen * 2);
-    if (!retval)
-            return NULL;
-    retbuf = PyString_AsString(retval);
-    if (!retbuf) {
-            Py_DECREF(retval);
-            return NULL;
-    }
-#endif
-    /* make hex version of string, taken from shamodule.c */
-    for (i=j=0; i < arglen; i++) {
-        unsigned char c;
-        c = (argbuf[i] >> 4) & 0xf;
-        retbuf[j++] = hexdigits[c];
-        c = argbuf[i] & 0xf;
-        retbuf[j++] = hexdigits[c];
-    }
-
-    return retval;
-}
-
+#include "backport.inc"
 
 /*[clinic input]
 module _sha3
@@ -185,8 +135,6 @@ class _sha3.shake_256 "SHA3object *" "&SHAKE256type"
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=b8a53680f370285a]*/
 
 /* The structure for storing SHA3 info */
-
-#define PY_WITH_KECCAK 1
 
 typedef struct {
     PyObject_HEAD
@@ -362,7 +310,7 @@ static PyObject *
 _sha3_sha3_224_digest_impl(SHA3object *self)
 /*[clinic end generated code: output=fd531842e20b2d5b input=a5807917d219b30e]*/
 {
-    unsigned char digest[SHA3_MAX_DIGESTSIZE];
+    unsigned char digest[SHA3_MAX_DIGESTSIZE + SHA3_LANESIZE];
     SHA3_state temp;
     HashReturn res;
 
@@ -390,7 +338,7 @@ static PyObject *
 _sha3_sha3_224_hexdigest_impl(SHA3object *self)
 /*[clinic end generated code: output=75ad03257906918d input=2d91bb6e0d114ee3]*/
 {
-    unsigned char digest[SHA3_MAX_DIGESTSIZE];
+    unsigned char digest[SHA3_MAX_DIGESTSIZE + SHA3_LANESIZE];
     SHA3_state temp;
     HashReturn res;
 
@@ -404,8 +352,8 @@ _sha3_sha3_224_hexdigest_impl(SHA3object *self)
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Final()");
         return NULL;
     }
-    return strhex((const char *)digest,
-                  self->hash_state.fixedOutputLength / 8);
+    return _Py_strhex((const char *)digest,
+                      self->hash_state.fixedOutputLength / 8);
 }
 
 
@@ -655,7 +603,11 @@ _SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
     int res;
     PyObject *result = NULL;
 
-    if ((digest = (unsigned char*)PyMem_Malloc(digestlen)) == NULL) {
+    /* ExtractLane needs at least SHA3_MAX_DIGESTSIZE + SHA3_LANESIZE and
+     * SHA3_LANESIZE extra space.
+     */
+    digest = (unsigned char*)PyMem_Malloc(digestlen + SHA3_LANESIZE);
+    if (digest == NULL) {
         return PyErr_NoMemory();
     }
 
@@ -673,8 +625,9 @@ _SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
         PyErr_SetString(PyExc_RuntimeError, "internal error in SHA3 Squeeze()");
         return NULL;
     }
+    SHA3_clearstate(temp);
     if (hex) {
-         result = strhex((const char *)digest, digestlen);
+         result = _Py_strhex((const char *)digest, digestlen);
     } else {
         result = PyBytes_FromStringAndSize((const char *)digest,
                                            digestlen);
@@ -683,7 +636,6 @@ _SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
     if (digest != NULL) {
         PyMem_Free(digest);
     }
-    SHA3_clearstate(temp);
     return result;
 }
 
@@ -758,18 +710,24 @@ static struct PyModuleDef _SHA3module = {
         NULL
 };
 
+
 PyMODINIT_FUNC
 PyInit__sha3(void)
 {
     PyObject *m = NULL;
-    m = PyModule_Create(&_SHA3module);
+
+    if ((m = PyModule_Create(&_SHA3module)) == NULL) {
+        return NULL;
+    }
 #else
 
 void
 init_sha3(void)
 {
     PyObject *m = NULL;
-    m = Py_InitModule3("_sha3", NULL, NULL);
+    if ((m = Py_InitModule3("_sha3", NULL, NULL)) == NULL) {
+        return;
+    }
 #endif
 
 #define init_sha3type(name, type)     \

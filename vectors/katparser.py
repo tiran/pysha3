@@ -37,5 +37,6 @@ def main():
                 f.write("{},{}\n".format(msg.lower(), md.lower()))
             f.write("# EOF\n")
 
+
 if __name__ == '__main__':
     main()

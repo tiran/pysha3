@@ -49,6 +49,7 @@ def cleanup(f):
         buf.append(line)
     return "".join(buf)
 
+
 if __name__ == '__main__':
     for name in getfiles():
         with open(name) as f:
