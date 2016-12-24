@@ -1,6 +1,18 @@
 Changelog
 =========
 
+pysha3 1.1.0
+------------
+
+*Release date: 24-Dec-2016*
+
+- Synchronize with Python 3.6.0 release
+
+- Move all backport related additions to backport.inc
+
+- Fix flake8 violations
+
+
 pysha3 1.0b1
 ------------
 
