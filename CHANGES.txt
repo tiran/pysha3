@@ -1,7 +1,18 @@
 Changelog
 =========
 
-pysha3 1.1.0
+pysha3 1.0.1
+------------
+
+*Release: 24-Jan-2017*
+
+- Fix github.org -> github.com (Pi Delport)
+
+- Fix endianness checks for Python 2 (William Grant)
+
+- Fix changelog, the Christmas release was 1.0.0, not 1.1.0
+
+pysha3 1.0.0
 ------------
 
 *Release date: 24-Dec-2016*
