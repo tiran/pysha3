@@ -19,6 +19,17 @@
 #define Hashsize_FromLong PyInt_FromLong
 #endif /* PY_MAJOR_VERSION >= 3 */
 
+/* Python 2 only defines WORDS_BIGENDIAN. */
+#if !defined(PY_BIG_ENDIAN) && !defined(PY_LITTLE_ENDIAN)
+#ifdef WORDS_BIGENDIAN
+#define PY_BIG_ENDIAN 1
+#define PY_LITTLE_ENDIAN 0
+#else
+#define PY_BIG_ENDIAN 0
+#define PY_LITTLE_ENDIAN 1
+#endif
+#endif
+
 #if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 5)
 static PyObject*
 _Py_strhex(const char* argbuf, const Py_ssize_t arglen)

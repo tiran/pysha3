@@ -17,6 +17,7 @@
 
 #include "Python.h"
 #include "../hashlib.h"
+#include "backport.inc"
 
 /* **************************************************************************
  *                          SHA-3 (Keccak) and SHAKE
@@ -120,8 +121,6 @@
 #define SHA3_done Keccak_HashFinal
 #define SHA3_squeeze Keccak_HashSqueeze
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
-
-#include "backport.inc"
 
 /*[clinic input]
 module _sha3
