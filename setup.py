@@ -96,7 +96,7 @@ setup(
     author_email="christian@python.org",
     maintainer="Christian Heimes",
     maintainer_email="christian@python.org",
-    url="https://github.org/tiran/pysha3",
+    url="https://github.com/tiran/pysha3",
     keywords="sha3 sha-3 keccak hash",
     platforms="POSIX, Windows",
     license="PSFL (Keccak: CC0 1.0 Universal)",
