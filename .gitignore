@@ -10,7 +10,7 @@ README\.html
 .pydevproject
 .settings
 
-_sha3*.so*
+_pysha3*.so*
 *.swp
 *.o
 *.pyc

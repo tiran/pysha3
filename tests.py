@@ -119,7 +119,7 @@ class BaseSHA3Tests(unittest.TestCase):
 
         sha3type = type(sha3)
         self.assertEqual(sha3type.__name__, self.name)
-        self.assertEqual(sha3type.__module__, "_sha3")
+        self.assertEqual(sha3type.__module__, "_pysha3")
         self.assertIsInstance(sha3type(), sha3type)
         self.assertIs(sha3type, self.new)
         self.assertRaises(TypeError, type, sha3type, "subclass", {})

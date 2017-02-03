@@ -123,13 +123,13 @@
 #define SHA3_copystate(dest, src) memcpy(&(dest), &(src), sizeof(SHA3_state))
 
 /*[clinic input]
-module _sha3
-class _sha3.sha3_224 "SHA3object *" "&SHA3_224typ"
-class _sha3.sha3_256 "SHA3object *" "&SHA3_256typ"
-class _sha3.sha3_384 "SHA3object *" "&SHA3_384typ"
-class _sha3.sha3_512 "SHA3object *" "&SHA3_512typ"
-class _sha3.shake_128 "SHA3object *" "&SHAKE128type"
-class _sha3.shake_256 "SHA3object *" "&SHAKE256type"
+module _pysha3
+class _pysha3.sha3_224 "SHA3object *" "&SHA3_224typ"
+class _pysha3.sha3_256 "SHA3object *" "&SHA3_256typ"
+class _pysha3.sha3_384 "SHA3object *" "&SHA3_384typ"
+class _pysha3.sha3_512 "SHA3object *" "&SHA3_512typ"
+class _pysha3.shake_128 "SHA3object *" "&SHAKE128type"
+class _pysha3.shake_256 "SHA3object *" "&SHAKE256type"
 [clinic start generated code]*/
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=b8a53680f370285a]*/
 
@@ -175,7 +175,7 @@ newSHA3object(PyTypeObject *type)
 
 /*[clinic input]
 @classmethod
-_sha3.sha3_224.__new__ as py_sha3_new
+_pysha3.sha3_224.__new__ as py_sha3_new
     string as data: object = NULL
 
 Return a new SHA3 hash object with a hashbit length of 28 bytes.
@@ -278,7 +278,7 @@ SHA3_dealloc(SHA3object *self)
 
 
 /*[clinic input]
-_sha3.sha3_224.copy
+_pysha3.sha3_224.copy
 
 Return a copy of the hash object.
 [clinic start generated code]*/
@@ -300,7 +300,7 @@ _sha3_sha3_224_copy_impl(SHA3object *self)
 
 
 /*[clinic input]
-_sha3.sha3_224.digest
+_pysha3.sha3_224.digest
 
 Return the digest value as a string of binary data.
 [clinic start generated code]*/
@@ -328,7 +328,7 @@ _sha3_sha3_224_digest_impl(SHA3object *self)
 
 
 /*[clinic input]
-_sha3.sha3_224.hexdigest
+_pysha3.sha3_224.hexdigest
 
 Return the digest value as a string of hexadecimal digits.
 [clinic start generated code]*/
@@ -357,7 +357,7 @@ _sha3_sha3_224_hexdigest_impl(SHA3object *self)
 
 
 /*[clinic input]
-_sha3.sha3_224.update
+_pysha3.sha3_224.update
 
     obj: object
     /
@@ -561,10 +561,10 @@ PyDoc_STRVAR(sha3_512__doc__,
 \n\
 Return a new SHA3 hash object with a hashbit length of 64 bytes.");
 
-SHA3_TYPE(SHA3_224type, "_sha3.sha3_224", py_sha3_new__doc__, SHA3_methods);
-SHA3_TYPE(SHA3_256type, "_sha3.sha3_256", sha3_256__doc__, SHA3_methods);
-SHA3_TYPE(SHA3_384type, "_sha3.sha3_384", sha3_384__doc__, SHA3_methods);
-SHA3_TYPE(SHA3_512type, "_sha3.sha3_512", sha3_512__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_224type, "_pysha3.sha3_224", py_sha3_new__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_256type, "_pysha3.sha3_256", sha3_256__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_384type, "_pysha3.sha3_384", sha3_384__doc__, SHA3_methods);
+SHA3_TYPE(SHA3_512type, "_pysha3.sha3_512", sha3_512__doc__, SHA3_methods);
 
 #ifdef PY_WITH_KECCAK
 PyDoc_STRVAR(keccak_224__doc__,
@@ -587,10 +587,10 @@ PyDoc_STRVAR(keccak_512__doc__,
 \n\
 Return a new Keccak hash object with a hashbit length of 64 bytes.");
 
-SHA3_TYPE(Keccak_224type, "_sha3.keccak_224", keccak_224__doc__, SHA3_methods);
-SHA3_TYPE(Keccak_256type, "_sha3.keccak_256", keccak_256__doc__, SHA3_methods);
-SHA3_TYPE(Keccak_384type, "_sha3.keccak_384", keccak_384__doc__, SHA3_methods);
-SHA3_TYPE(Keccak_512type, "_sha3.keccak_512", keccak_512__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_224type, "_pysha3.keccak_224", keccak_224__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_256type, "_pysha3.keccak_256", keccak_256__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_384type, "_pysha3.keccak_384", keccak_384__doc__, SHA3_methods);
+SHA3_TYPE(Keccak_512type, "_pysha3.keccak_512", keccak_512__doc__, SHA3_methods);
 #endif
 
 
@@ -640,7 +640,7 @@ _SHAKE_digest(SHA3object *self, unsigned long digestlen, int hex)
 
 
 /*[clinic input]
-_sha3.shake_128.digest
+_pysha3.shake_128.digest
 
     length: unsigned_long(bitwise=True)
     \
@@ -657,7 +657,7 @@ _sha3_shake_128_digest_impl(SHA3object *self, unsigned long length)
 
 
 /*[clinic input]
-_sha3.shake_128.hexdigest
+_pysha3.shake_128.hexdigest
 
     length: unsigned_long(bitwise=True)
     \
@@ -691,15 +691,15 @@ PyDoc_STRVAR(shake_256__doc__,
 \n\
 Return a new SHAKE hash object.");
 
-SHA3_TYPE(SHAKE128type, "_sha3.shake_128", shake_128__doc__, SHAKE_methods);
-SHA3_TYPE(SHAKE256type, "_sha3.shake_256", shake_256__doc__, SHAKE_methods);
+SHA3_TYPE(SHAKE128type, "_pysha3.shake_128", shake_128__doc__, SHAKE_methods);
+SHA3_TYPE(SHAKE256type, "_pysha3.shake_256", shake_256__doc__, SHAKE_methods);
 
 
 #if PY_MAJOR_VERSION >= 3
 /* Initialize this module. */
 static struct PyModuleDef _SHA3module = {
         PyModuleDef_HEAD_INIT,
-        "_sha3",
+        "_pysha3",
         NULL,
         -1,
         NULL,
@@ -711,7 +711,7 @@ static struct PyModuleDef _SHA3module = {
 
 
 PyMODINIT_FUNC
-PyInit__sha3(void)
+PyInit__pysha3(void)
 {
     PyObject *m = NULL;
 
@@ -721,10 +721,10 @@ PyInit__sha3(void)
 #else
 
 void
-init_sha3(void)
+init_pysha3(void)
 {
     PyObject *m = NULL;
-    if ((m = Py_InitModule3("_sha3", NULL, NULL)) == NULL) {
+    if ((m = Py_InitModule3("_pysha3", NULL, NULL)) == NULL) {
         return;
     }
 #endif
