@@ -1,6 +1,14 @@
 Changelog
 =========
 
+pysha3 1.0.2
+------------
+
+*Release: xx-xxxx-2017*
+
+- Rename internal C extension to _pysha3 to avoild conflict with Python 3.6'
+  _sha3 extension.
+
 pysha3 1.0.1
 ------------
 

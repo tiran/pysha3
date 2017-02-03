@@ -70,7 +70,7 @@ sha3_depends = ["setup.py", "Modules/hashlib.h", "Modules/pymemsets.h"]
 sha3_depends.extend(glob("Modules/_sha3/kcp/*"))
 exts.append(
     Extension(
-        "_sha3",
+        "_pysha3",
         ["Modules/_sha3/sha3module.c", "Modules/pymemsets.c"],
         depends=sha3_depends,
         define_macros=[("PY_WITH_KECCAK", "1")]
