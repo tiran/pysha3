@@ -88,7 +88,7 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="1.0.2.dev1",
+    version="1.0.2",
     ext_modules=exts,
     py_modules=["sha3"],
     cmdclass={"test": TestCommand},
