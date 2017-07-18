@@ -36,9 +36,9 @@ Usage
 The `sha3` module contains several constructors for hash objects with a
 PEP 247 compatible interface. The module provides SHA3, SHAKE and Keccak:
 
-* `sha3_228()`, `sha3_256()`, `sha3_384()`, and `sha3_512()`
+* `sha3_224()`, `sha3_256()`, `sha3_384()`, and `sha3_512()`
 * `shake_128()`, `shake_256()`
-* `keccak_228()`, `keccak_256()`, `keccak_384()`, and `keccak_512()`
+* `keccak_224()`, `keccak_256()`, `keccak_384()`, and `keccak_512()`
 
 The `sha3` module monkey patches the `hashlib` module . The monkey patch is
 automatically activated with the first import of the `sha3` module. The
