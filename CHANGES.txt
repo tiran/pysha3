@@ -1,6 +1,14 @@
 Changelog
 =========
 
+pysha3 1.0.3-dev
+----------------
+
+*Unreleased*
+
+- Fix typo in documentation (sha3_228 -> sha3_224)
+- Add manylinux1 builder
+
 pysha3 1.0.2
 ------------
 
