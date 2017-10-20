@@ -107,7 +107,9 @@ class BaseSHA3Tests(unittest.TestCase):
             self.assertEqual(len(sha3.digest()), self.digest_size)
             self.assertEqual(len(sha3.hexdigest()), self.digest_size * 2)
 
-        self.assertRaises(AttributeError, setattr, sha3, "digest", 3)
+        # object is read-only
+        self.assertRaises(AttributeError, setattr, sha3, "attribute", None)
+        self.assertRaises(AttributeError, setattr, sha3, "digest_size", 3)
         self.assertRaises(AttributeError, setattr, sha3, "name", "egg")
 
         self.new(b"data")

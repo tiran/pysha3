@@ -89,7 +89,7 @@ with open("CHANGES.txt") as f:
 
 setup(
     name="pysha3",
-    version="1.0.2",
+    version="1.0.3.dev1",
     ext_modules=exts,
     py_modules=["sha3"],
     cmdclass={"test": TestCommand},
@@ -121,6 +121,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        # Python 3.6 has sha3 built-in
+        # "Programming Language :: Python :: 3.6",
         "Topic :: Security :: Cryptography",
     ],
 )
