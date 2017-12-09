@@ -68,6 +68,7 @@ class TestCommand(Command):
 exts = []
 sha3_depends = ["setup.py", "Modules/hashlib.h", "Modules/pymemsets.h"]
 sha3_depends.extend(glob("Modules/_sha3/kcp/*"))
+sha3_depends.append("Modules/_sha3/backport.inc")
 exts.append(
     Extension(
         "_pysha3",
