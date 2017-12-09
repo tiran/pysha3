@@ -8,6 +8,7 @@ pysha3 1.0.3-dev
 
 - Fix typo in documentation (sha3_228 -> sha3_224)
 - Add manylinux1 builder
+- Don't use privat pystrhex.h
 
 pysha3 1.0.2
 ------------

@@ -30,7 +30,6 @@
 #endif
 #endif
 
-#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 5)
 static PyObject*
 _Py_strhex(const char* argbuf, const Py_ssize_t arglen)
 {
@@ -74,6 +73,4 @@ _Py_strhex(const char* argbuf, const Py_ssize_t arglen)
 
     return retval;
 }
-#else
-#include "pystrhex.h"
-#endif /* < 3.5 */
+
