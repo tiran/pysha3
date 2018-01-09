@@ -3,6 +3,7 @@ from __future__ import print_function
 import hashlib
 import hmac
 import os
+import platform
 import sys
 import unittest
 
@@ -108,9 +109,11 @@ class BaseSHA3Tests(unittest.TestCase):
             self.assertEqual(len(sha3.hexdigest()), self.digest_size * 2)
 
         # object is read-only
-        self.assertRaises(AttributeError, setattr, sha3, "attribute", None)
-        self.assertRaises(AttributeError, setattr, sha3, "digest_size", 3)
-        self.assertRaises(AttributeError, setattr, sha3, "name", "egg")
+        # (PyPy is known not to implement this correctly)
+        if platform.python_implementation() != 'PyPy':
+            self.assertRaises(AttributeError, setattr, sha3, "attribute", None)
+            self.assertRaises(AttributeError, setattr, sha3, "digest_size", 3)
+            self.assertRaises(AttributeError, setattr, sha3, "name", "egg")
 
         self.new(b"data")
         self.new(string=b"data")
