@@ -87,8 +87,8 @@ Changelog
 
 *Release: 05-Feb-2017*
 
--   Rename internal C extension to \_pysha3 to avoild conflict with
-    Python 3.6' \_sha3 extension.
+-   Rename internal C extension to \_pysha3 to avoid conflict with
+    Python 3.6' \_sha3 extension
 
 ### pysha3 1.0.1
 
@@ -112,24 +112,24 @@ Changelog
 
 -   Update backend to use the latest Keccak Code Package. pysha3 now
     implements the official NIST standard. The old Keccak hashes are
-    available with keccak prefix.
--   Add SHAKE support.
+    available with keccak prefix
+-   Add SHAKE support
 -   All sha3, shake and keccak variants are separate types instead of
-    factory functions that return the same type.
--   Drop Python 2.6 and Python 3.0 to 3.3 support.
--   Fix typo that disabled threading optimization.
--   Add vector files for additional tests.
+    factory functions that return the same type
+-   Drop Python 2.6 and Python 3.0 to 3.3 support
+-   Fix typo that disabled threading optimization
+-   Add vector files for additional tests
 -   Add experimental HMAC support based on examples from
-    <http://wolfgang-ehrhardt.de/hmac-sha3-testvectors.html> .
--   Test hashing of unaligned data.
+    <http://wolfgang-ehrhardt.de/hmac-sha3-testvectors.html>
+-   Test hashing of unaligned data
 -   Add ISO C11 memset\_s() function as \_Py\_memset\_s() in order to
     securely wipe memory that holds sensitive data. The page
     <https://www.securecoding.cert.org/confluence/display/seccode/MSC06-C.+Be+aware+of+compiler+optimization+when+dealing+with+sensitive+data>
-    explains the motivation for memset\_s().
--   Add tox support.
--   Add Travis and appveyor integration.
+    explains the motivation for memset\_s()
+-   Add tox support
+-   Add Travis and appveyor integration
 -   Add \_capacity\_bits, \_rate\_bits and \_suffix attributes for
-    diagnostic purposes.
+    diagnostic purposes
 
 ### pysha3 0.3
 
@@ -137,9 +137,9 @@ Changelog
 
 -   Fix 64bit big endian support
 -   Add workaround for alignment error on 64bit SPARC machine by using
-    the opt32 implementation.
+    the opt32 implementation
 -   block\_size now returns NotImplemented to prevent users from using
-    pysha3 with the hmac module.
+    pysha3 with the hmac module
 
 ### pysha3 0.2.2
 
@@ -160,21 +160,21 @@ Changelog
 *Release date: 06-Oct-2012*
 
 -   Change directory struct to use the same directory layout as Python
-    3.4.
--   Remove C++ comments from Keccak sources for ANSI C compatibility.
+    3.4
+-   Remove C++ comments from Keccak sources for ANSI C compatibility
 -   Declare all Keccak functions and globals as static to avoid name
-    clashes.
--   Remove alias sha3() for sha3\_512().
+    clashes
+-   Remove alias sha3() for sha3\_512()
 -   Add block\_size attribute. Keccak has a internal sponge size of 1600
-    bits.
--   Release GIL around SHA3\_update() calls.
+    bits
+-   Release GIL around SHA3\_update() calls
 -   Monkey patch the hashlib module to support, e.g. hashlib.sha3\_512()
     and hashlib.new("sha3\_512")
 -   Release GIL around SHA3\_update() when the data exceeds a certain
-    size.
+    size
 -   Fix build on platforms with an unsigned 64bit integer type
     (uint64\_t). The module falls back to 32bit implementation of Keccak
-    with interleave tables.
+    with interleave tables
 
 ### pysha3 0.1
 
