@@ -51,17 +51,22 @@ install:
 	$(PYTHON) setup.py $(SETUPFLAGS) build $(COMPILEFLAGS)
 	$(PYTHON) setup.py install $(INSTALLFLAGS)
 
-dist: clean sdist manylinux1
+dist: clean sdist manylinux2014
 
 sdist: README.html README.md
 	$(PYTHON) setup.py sdist --formats gztar,zip
 
-manylinux1: clean
+manylinux2014: clean
 	docker run --rm -v $(CURDIR):/io:Z \
 	    -e BUILD_UID=$(shell id -u) -e BUILD_GID=$(shell id -g) \
-	    quay.io/pypa/manylinux1_x86_64:latest \
+	    quay.io/pypa/manylinux2014_x86_64:latest \
 	    /io/extras/build-wheels.sh
 	docker run --rm -v $(CURDIR):/io:Z \
 	    -e BUILD_UID=$(shell id -u) -e BUILD_GID=$(shell id -g) \
-	    quay.io/pypa/manylinux1_i686:latest \
+	    quay.io/pypa/manylinux2014_i686:latest \
 	    linux32 /io/extras/build-wheels.sh
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker run --rm -v $(CURDIR):/io:Z \
+            -e BUILD_UID=$(shell id -u) -e BUILD_GID=$(shell id -g) \
+            quay.io/pypa/manylinux2014_aarch64:latest \
+            /io/extras/build-wheels.sh
