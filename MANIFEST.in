@@ -1,8 +1,0 @@
-include setup.py
-include README.txt CHANGES.txt LICENSE
-include MANIFEST.in
-include setup.py Makefile
-include tests.py
-include Modules/_sha3/cleanup.py
-recursive-include vectors *.txt
-recursive-include Modules *.c *.h *.macros *.inc
